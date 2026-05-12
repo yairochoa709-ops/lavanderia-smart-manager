@@ -1,13 +1,13 @@
 import React from 'react';
 import { ClipboardList, Package, Receipt, FileText, Users, Droplets } from 'lucide-react';
 
-const Sidebar = () => {
+const Sidebar = ({ currentPage, setCurrentPage }) => {
   const menuItems = [
-    { name: 'Recepción', icon: <ClipboardList size={20} />, active: true },
-    { name: 'Inventario', icon: <Package size={20} />, active: false },
-    { name: 'Facturación', icon: <Receipt size={20} />, active: false },
-    { name: 'Reportes', icon: <FileText size={20} />, active: false },
-    { name: 'Usuarios', icon: <Users size={20} />, active: false },
+    { name: 'Recepción', icon: <ClipboardList size={20} /> },
+    { name: 'Inventario', icon: <Package size={20} /> },
+    { name: 'Facturación', icon: <Receipt size={20} /> },
+    { name: 'Reportes', icon: <FileText size={20} /> },
+    { name: 'Usuarios', icon: <Users size={20} /> },
   ];
 
   return (
@@ -20,21 +20,27 @@ const Sidebar = () => {
       </div>
       
       <nav className="flex-1 py-6 px-4 space-y-2">
-        {menuItems.map((item, index) => (
-          <a
-            key={index}
-            href="#"
-            onClick={(e) => e.preventDefault()}
-            className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
-              item.active 
-                ? 'bg-primary-600 shadow-lg shadow-primary-600/30 font-medium' 
-                : 'hover:bg-primary-800 text-primary-100 hover:text-white'
-            }`}
-          >
-            {item.icon}
-            {item.name}
-          </a>
-        ))}
+        {menuItems.map((item, index) => {
+          const isActive = currentPage === item.name;
+          return (
+            <a
+              key={index}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                setCurrentPage(item.name);
+              }}
+              className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-300 ${
+                isActive 
+                  ? 'bg-primary-600 shadow-lg shadow-primary-600/30 font-medium' 
+                  : 'hover:bg-primary-800 text-primary-100 hover:text-white'
+              }`}
+            >
+              {item.icon}
+              {item.name}
+            </a>
+          );
+        })}
       </nav>
       
       <div className="p-6 border-t border-primary-800">
