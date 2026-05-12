@@ -43,6 +43,18 @@ const Sidebar = ({ currentPage, setCurrentPage }) => {
         })}
       </nav>
       
+      <div className="px-4 pb-4">
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            setCurrentPage('Tracking');
+          }}
+          className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-md"
+        >
+          Vista Cliente
+        </button>
+      </div>
+
       <div className="p-6 border-t border-primary-800">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary-700 flex items-center justify-center font-bold text-lg">
