@@ -4,6 +4,27 @@ import { User, CreditCard, Phone } from 'lucide-react';
 const CustomerForm = ({ customer, setCustomer }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
+
+    if (name === 'id' || name === 'phone') {
+      // Allow empty string or only numbers
+      if (value !== '' && !/^\d+$/.test(value)) return;
+    }
+
+    if (name === 'id') {
+      const maxLength = customer.idType === 'RUC' ? 13 : 10;
+      if (value.length > maxLength) return;
+    }
+
+    if (name === 'idType') {
+      const newMaxLength = value === 'RUC' ? 13 : 10;
+      setCustomer(prev => ({ 
+        ...prev, 
+        [name]: value,
+        id: prev.id.length > newMaxLength ? prev.id.slice(0, newMaxLength) : prev.id 
+      }));
+      return;
+    }
+
     setCustomer(prev => ({ ...prev, [name]: value }));
   };
 
@@ -33,7 +54,18 @@ const CustomerForm = ({ customer, setCustomer }) => {
           </div>
         </div>
         <div>
-          <label className="block text-sm font-semibold text-slate-700 mb-2">Cédula / RUC</label>
+          <div className="flex items-center gap-2 mb-2">
+            <label className="block text-sm font-semibold text-slate-700">Identificación</label>
+            <select
+              name="idType"
+              value={customer.idType || 'CEDULA'}
+              onChange={handleChange}
+              className="text-xs font-semibold px-2 py-0.5 border border-slate-200 rounded-lg focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none text-slate-600 bg-slate-50 focus:bg-white cursor-pointer transition-colors"
+            >
+              <option value="CEDULA">Cédula</option>
+              <option value="RUC">RUC</option>
+            </select>
+          </div>
           <div className="relative group">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500 transition-colors">
               <CreditCard size={18} />
@@ -44,7 +76,7 @@ const CustomerForm = ({ customer, setCustomer }) => {
               value={customer.id}
               onChange={handleChange}
               className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white"
-              placeholder="Ej. 0912345678"
+              placeholder={customer.idType === 'RUC' ? "13 dígitos" : "10 dígitos"}
             />
           </div>
         </div>
