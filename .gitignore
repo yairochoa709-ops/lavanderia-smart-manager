@@ -1,0 +1,33 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Java
+target/
+.gradle/
+build/
+*.class
+
+# IDEs
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.project
+*.classpath
+*.settings/
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# Database / Env
+*.env
+*.env.local
+# Ignorar credenciales o archivos de configuración locales que contengan información de PostgreSQL
+application-local.properties
+application-local.yml
