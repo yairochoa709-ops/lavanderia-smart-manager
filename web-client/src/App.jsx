@@ -4,6 +4,7 @@ import Reception from './pages/Reception';
 import Inventory from './pages/Inventory';
 import Billing from './pages/Billing';
 import Tracking from './pages/Tracking';
+import Reports from './pages/Reports';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('Recepción');
@@ -18,10 +19,11 @@ function App() {
         {currentPage === 'Recepción' && <Reception />}
         {currentPage === 'Inventario' && <Inventory />}
         {currentPage === 'Facturación' && <Billing />}
+        {currentPage === 'Reportes' && <Reports />}
         {currentPage === 'Tracking' && <Tracking onBack={() => setCurrentPage('Recepción')} />}
         
         {/* Placeholder for other pages */}
-        {!isPublicPage && currentPage !== 'Recepción' && currentPage !== 'Inventario' && currentPage !== 'Facturación' && (
+        {!isPublicPage && currentPage !== 'Recepción' && currentPage !== 'Inventario' && currentPage !== 'Facturación' && currentPage !== 'Reportes' && (
           <div className="flex items-center justify-center h-full text-slate-400">
             <h2 className="text-2xl font-semibold">Módulo en construcción: {currentPage}</h2>
           </div>
