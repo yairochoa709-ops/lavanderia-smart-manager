@@ -1,24 +1,5 @@
 import React, { useState } from 'react';
-import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar } from 'lucide-react';
-
-const mockDB = [
-  {
-    id: 'TKT-2026-001',
-    cedula: '0987654321',
-    customerName: 'Ana García',
-    status: 'LISTO', // RECIBIDO, LAVADO, LISTO, ENTREGADO
-    estimatedDate: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
-    services: ['Lavado en Seco (Traje)', 'Planchado (Camisa)']
-  },
-  {
-    id: 'TKT-2026-002',
-    cedula: '0911111111',
-    customerName: 'Carlos López',
-    status: 'LAVADO',
-    estimatedDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000).toISOString(),
-    services: ['Lavado por Peso (5kg)']
-  }
-];
+import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar, Loader2 } from 'lucide-react';
 
 const steps = [
   { id: 'RECIBIDO', label: 'Recibido', icon: Package },
@@ -33,21 +14,33 @@ const Tracking = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [orderData, setOrderData] = useState(null);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
     if (!searchTerm.trim()) return;
 
-    const found = mockDB.find(
-      o => o.id.toLowerCase() === searchTerm.toLowerCase() || o.cedula === searchTerm
-    );
+    setIsLoading(true);
+    setError('');
+    setOrderData(null);
 
-    if (found) {
-      setOrderData(found);
-      setError('');
-    } else {
-      setOrderData(null);
-      setError('No pudimos encontrar un pedido con ese número o cédula. Por favor, verifica e intenta de nuevo.');
+    try {
+      const response = await fetch(`http://localhost:8080/api/public/seguimiento/${encodeURIComponent(searchTerm)}`);
+      
+      if (!response.ok) {
+        if (response.status === 404) {
+           throw new Error('No pudimos encontrar un pedido con ese número de seguimiento o cédula. Por favor, verifica e intenta de nuevo.');
+        } else {
+           throw new Error('Error al conectar con el servidor.');
+        }
+      }
+
+      const data = await response.json();
+      setOrderData(data);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -71,8 +64,12 @@ const Tracking = ({ onBack }) => {
   };
 
   const getStepStatus = (currentStatus, stepId) => {
-    const statusIndex = steps.findIndex(s => s.id === currentStatus);
+    // Si el estado viene diferente desde DB, aseguramos mayúsculas
+    const normalizedStatus = currentStatus ? currentStatus.toUpperCase() : 'RECIBIDO';
+    const statusIndex = steps.findIndex(s => s.id === normalizedStatus);
     const stepIndex = steps.findIndex(s => s.id === stepId);
+
+    if (statusIndex === -1) return 'pending'; // Fallback por si hay estado nuevo no mapeado
 
     if (stepIndex < statusIndex) return 'completed';
     if (stepIndex === statusIndex) return 'current';
@@ -114,22 +111,28 @@ const Tracking = ({ onBack }) => {
         {!orderData && (
           <div className="text-center max-w-xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <h2 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Sigue tu pedido en tiempo real</h2>
-            <p className="text-slate-500 text-lg mb-8">Ingresa tu número de ticket o cédula para conocer el estado exacto de tus prendas.</p>
+            <p className="text-slate-500 text-lg mb-8">Ingresa tu número de ticket de seguimiento o cédula para conocer el estado exacto de tus prendas.</p>
             
             <form onSubmit={handleSearch} className="relative shadow-xl rounded-2xl">
               <input
                 type="text"
-                placeholder="Ej. TKT-2026-001 o 0912345678"
+                placeholder="Ej. c2f4a1... o 0912345678"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-6 pr-32 py-5 text-lg border-2 border-primary-100 rounded-2xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 bg-white shadow-sm"
+                disabled={isLoading}
+                className="w-full pl-6 pr-40 py-5 text-lg border-2 border-primary-100 rounded-2xl focus:ring-4 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all text-slate-700 bg-white shadow-sm"
               />
               <button 
                 type="submit"
-                className="absolute right-2 top-2 bottom-2 bg-primary-600 hover:bg-primary-700 text-white px-6 rounded-xl font-bold transition-all shadow-md flex items-center gap-2"
+                disabled={isLoading || !searchTerm.trim()}
+                className={`absolute right-2 top-2 bottom-2 px-6 rounded-xl font-bold transition-all shadow-md flex items-center gap-2 ${
+                  isLoading || !searchTerm.trim() 
+                    ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                    : 'bg-primary-600 hover:bg-primary-700 text-white'
+                }`}
               >
-                <Search size={20} />
-                <span className="hidden sm:inline">Buscar</span>
+                {isLoading ? <Loader2 size={20} className="animate-spin" /> : <Search size={20} />}
+                <span className="hidden sm:inline">{isLoading ? 'Buscando...' : 'Buscar'}</span>
               </button>
             </form>
             
@@ -146,17 +149,18 @@ const Tracking = ({ onBack }) => {
           <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
               <div>
-                <button onClick={() => setOrderData(null)} className="text-primary-600 hover:text-primary-800 text-sm font-bold flex items-center gap-1 mb-4 transition-colors">
+                <button onClick={() => { setOrderData(null); setSearchTerm(''); }} className="text-primary-600 hover:text-primary-800 text-sm font-bold flex items-center gap-1 mb-4 transition-colors">
                   <ArrowLeft size={16} /> Nueva Búsqueda
                 </button>
-                <h2 className="text-3xl font-extrabold text-slate-900">Ticket: {orderData.id}</h2>
-                <p className="text-slate-500 text-lg mt-1">Hola, <span className="font-semibold text-slate-700">{orderData.customerName}</span></p>
+                <h2 className="text-3xl font-extrabold text-slate-900">Ticket Público</h2>
+                <p className="text-slate-500 text-xs font-mono break-all mt-1">{orderData.idTicket}</p>
+                <p className="text-slate-500 text-lg mt-2">Hola, <span className="font-semibold text-slate-700">{orderData.nombreCliente}</span></p>
               </div>
               <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-200">
                 <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Entrega Pactada</p>
                 <div className="flex items-center gap-2 text-slate-900 font-extrabold text-lg">
                   <Calendar size={20} className="text-primary-600" />
-                  {new Date(orderData.estimatedDate).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  {new Date(orderData.fechaEntregaPactada).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
                 </div>
               </div>
             </div>
@@ -170,7 +174,7 @@ const Tracking = ({ onBack }) => {
                 <div className="hidden sm:block absolute top-6 left-12 right-12 h-1 bg-slate-100 -z-10 rounded-full"></div>
                 
                 {steps.map((step, index) => {
-                  const status = getStepStatus(orderData.status, step.id);
+                  const status = getStepStatus(orderData.estadoActual, step.id);
                   const Icon = step.icon;
                   
                   let iconBg = 'bg-slate-100 text-slate-400';
@@ -207,7 +211,7 @@ const Tracking = ({ onBack }) => {
 
             {/* Alerta de Recargo */}
             {(() => {
-              const { daysLate, penaltyAmount } = calculatePenalty(orderData.estimatedDate, orderData.status);
+              const { daysLate, penaltyAmount } = calculatePenalty(orderData.fechaEntregaPactada, orderData.estadoActual);
               if (daysLate > 0) {
                 return (
                   <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 flex items-start gap-4 shadow-sm animate-in fade-in duration-500">
@@ -231,14 +235,19 @@ const Tracking = ({ onBack }) => {
 
             {/* Resumen de Servicios */}
             <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <h3 className="font-bold text-slate-800 mb-4 uppercase tracking-wider text-sm flex items-center gap-2">
-                <Package size={18} className="text-slate-400" />
-                Prendas en este ticket
-              </h3>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-bold text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
+                  <Package size={18} className="text-slate-400" />
+                  Prendas en este ticket
+                </h3>
+                <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-xs font-bold border border-primary-100">
+                  Total: ${orderData.totalFinal.toFixed(2)}
+                </span>
+              </div>
               <div className="flex flex-wrap gap-2">
-                {orderData.services.map((service, idx) => (
-                  <span key={idx} className="bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200">
-                    {service}
+                {orderData.servicios.map((service, idx) => (
+                  <span key={idx} className="bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 flex items-center gap-2">
+                    <span className="font-bold">{service.cantidad}x</span> {service.nombre}
                   </span>
                 ))}
               </div>
