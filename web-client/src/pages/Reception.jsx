@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import CustomerForm from '../components/CustomerForm';
 import ServiceSelector from '../components/ServiceSelector';
-import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2 } from 'lucide-react';
+import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2, X } from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
 
 const Reception = () => {
   const [customer, setCustomer] = useState({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
@@ -12,6 +13,9 @@ const Reception = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [ticketUuid, setTicketUuid] = useState(null);
+  
+  // Estado para el modal del QR genérico
+  const [showQrModal, setShowQrModal] = useState(false);
 
   const getMinDateTime = () => {
     const now = new Date();
@@ -92,6 +96,7 @@ const Reception = () => {
       setTicketUuid(data.uuidTicket);
       setTicketGenerated(true);
       
+      // Restauramos el comportamiento rápido (limpieza en 4 segundos)
       setTimeout(() => {
         setTicketGenerated(false);
         setCustomer({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
@@ -112,11 +117,22 @@ const Reception = () => {
   const taxes = subtotal * 0.15;
   const total = subtotal + taxes;
 
+  const staticTrackingUrl = `${import.meta.env.VITE_PUBLIC_URL || 'http://localhost:5173'}/seguimiento`;
+
   return (
-    <div className="max-w-5xl mx-auto animate-in fade-in duration-500">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Recepción de Pedidos</h1>
-        <p className="text-slate-500 mt-2 text-lg">Registre los datos del cliente y los servicios solicitados para generar un nuevo ticket.</p>
+    <div className="max-w-5xl mx-auto animate-in fade-in duration-500 relative">
+      <div className="mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Recepción de Pedidos</h1>
+          <p className="text-slate-500 mt-2 text-lg">Registre los datos del cliente y los servicios solicitados para generar un nuevo ticket.</p>
+        </div>
+        <button
+          onClick={() => setShowQrModal(true)}
+          className="bg-white border border-primary-200 text-primary-700 hover:bg-primary-50 font-bold px-4 py-2 rounded-xl flex items-center gap-2 shadow-sm transition-colors"
+        >
+          <QrCode size={20} />
+          Mostrar Portal QR
+        </button>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -242,6 +258,41 @@ const Reception = () => {
           </div>
         </div>
       </div>
+
+      {/* Modal QR Genérico */}
+      {showQrModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+          <div className="bg-white rounded-3xl shadow-2xl max-w-sm w-full p-8 relative animate-in zoom-in-95 duration-300">
+            <button 
+              onClick={() => setShowQrModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-full p-2 transition-colors"
+            >
+              <X size={20} />
+            </button>
+            
+            <div className="text-center">
+              <div className="bg-primary-50 text-primary-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
+                <QrCode size={32} />
+              </div>
+              <h3 className="text-2xl font-bold text-slate-900 mb-2">Portal de Seguimiento</h3>
+              <p className="text-slate-500 mb-8">Escanee este código para acceder al portal público.</p>
+              
+              <div className="bg-white p-4 rounded-2xl shadow-sm border-2 border-slate-100 mb-6 inline-block">
+                <QRCodeSVG 
+                  value={staticTrackingUrl} 
+                  size={200} 
+                  level="H" 
+                  includeMargin={false} 
+                />
+              </div>
+              
+              <p className="text-sm text-slate-400 bg-slate-50 py-3 px-4 rounded-xl">
+                El cliente deberá ingresar su <strong className="text-slate-700">cédula</strong> en el portal para ver su pedido.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import com.smartmanager.model.Cliente;
 import com.smartmanager.model.DetallePedido;
 import com.smartmanager.model.Pedido;
 import com.smartmanager.model.ServicioLavado;
+import com.smartmanager.model.EstadoProceso;
 import com.smartmanager.repository.ClienteRepository;
 import com.smartmanager.repository.DetallePedidoRepository;
 import com.smartmanager.repository.PedidoRepository;
@@ -47,7 +48,10 @@ public class RecepcionService {
         pedido.setFechaEntregaLimite(dto.getPedido().getFechaEntregaLimite());
         pedido.setObservaciones(dto.getPedido().getObservaciones());
         pedido.setIdUsuario(dto.getPedido().getIdUsuario());
-        pedido.setEstadoProceso("Recibido");
+        
+        EstadoProceso estadoRecibido = new EstadoProceso();
+        estadoRecibido.setIdEstado(1);
+        pedido.setEstado(estadoRecibido);
         
         pedido = pedidoRepository.save(pedido);
 

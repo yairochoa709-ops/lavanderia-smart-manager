@@ -6,9 +6,17 @@ import Billing from './pages/Billing';
 import Tracking from './pages/Tracking';
 import Reports from './pages/Reports';
 import Users from './pages/Users';
+import OperatorPanel from './pages/OperatorPanel';
+import { Toaster } from 'react-hot-toast';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('Recepción');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Si la URL es la del escáner QR, abrimos directamente la vista de Tracking
+    if (window.location.pathname.startsWith('/seguimiento')) {
+      return 'Tracking';
+    }
+    return 'Recepción';
+  });
   // Mock auth state for RBAC demonstration
   const [currentUserRole, setCurrentUserRole] = useState('ADMIN'); // 'ADMIN' or 'OPERATOR'
 
@@ -16,6 +24,7 @@ function App() {
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
+      <Toaster position="top-right" />
       {!isPublicPage && (
         <Sidebar 
           currentPage={currentPage} 
@@ -31,10 +40,11 @@ function App() {
         {currentPage === 'Facturación' && <Billing />}
         {currentPage === 'Reportes' && <Reports />}
         {currentPage === 'Usuarios' && currentUserRole === 'ADMIN' && <Users />}
+        {currentPage === 'Panel Operativo' && <OperatorPanel />}
         {currentPage === 'Tracking' && <Tracking onBack={() => setCurrentPage('Recepción')} />}
         
         {/* Placeholder for other pages */}
-        {!isPublicPage && !['Recepción', 'Inventario', 'Facturación', 'Reportes', 'Usuarios'].includes(currentPage) && (
+        {!isPublicPage && !['Recepción', 'Inventario', 'Facturación', 'Reportes', 'Usuarios', 'Panel Operativo'].includes(currentPage) && (
           <div className="flex items-center justify-center h-full text-slate-400">
             <h2 className="text-2xl font-semibold">Módulo en construcción: {currentPage}</h2>
           </div>

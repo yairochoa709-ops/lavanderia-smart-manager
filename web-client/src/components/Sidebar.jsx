@@ -1,9 +1,10 @@
 import React from 'react';
-import { ClipboardList, Package, Receipt, FileText, Users, Droplets } from 'lucide-react';
+import { ClipboardList, Package, Receipt, FileText, Users, Droplets, LayoutDashboard } from 'lucide-react';
 
 const Sidebar = ({ currentPage, setCurrentPage, currentUserRole, setCurrentUserRole }) => {
   const menuItems = [
     { name: 'Recepción', icon: <ClipboardList size={20} />, requiresAdmin: false },
+    { name: 'Panel Operativo', icon: <LayoutDashboard size={20} />, requiresAdmin: false },
     { name: 'Inventario', icon: <Package size={20} />, requiresAdmin: false },
     { name: 'Facturación', icon: <Receipt size={20} />, requiresAdmin: false },
     { name: 'Reportes', icon: <FileText size={20} />, requiresAdmin: false },
