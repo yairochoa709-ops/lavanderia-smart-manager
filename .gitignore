@@ -31,3 +31,5 @@ Thumbs.db
 # Ignorar credenciales o archivos de configuración locales que contengan información de PostgreSQL
 application-local.properties
 application-local.yml
+# Credenciales reales del backend - cada desarrollador tiene el suyo local
+api-service/src/main/resources/application.properties

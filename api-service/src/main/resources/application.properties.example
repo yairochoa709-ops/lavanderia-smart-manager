@@ -6,9 +6,11 @@ server.port=8080
 # ==========================================
 # Configuración de Base de Datos PostgreSQL
 # ==========================================
+# INSTRUCCIONES: Copia este archivo como "application.properties" y rellena tus credenciales locales.
+# NUNCA subas el archivo "application.properties" con tu contraseña real al repositorio.
 spring.datasource.url=jdbc:postgresql://localhost:5432/lavanderia_guayaquil?currentSchema=gestion_procesos
-spring.datasource.username=postgres
-spring.datasource.password=071720
+spring.datasource.username=TU_USUARIO_POSTGRES
+spring.datasource.password=TU_CONTRASEÑA_POSTGRES
 spring.datasource.driver-class-name=org.postgresql.Driver
 
 # ==========================================
