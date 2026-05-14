@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
 import CustomerForm from '../components/CustomerForm';
 import ServiceSelector from '../components/ServiceSelector';
-import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react';
+import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2 } from 'lucide-react';
 
 const Reception = () => {
   const [customer, setCustomer] = useState({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
-  const [selectedServices, setSelectedServices] = useState([]); // Ahora guardará objetos con { ...service, qty }
+  const [selectedServices, setSelectedServices] = useState([]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [ticketGenerated, setTicketGenerated] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [ticketUuid, setTicketUuid] = useState(null);
 
   const getMinDateTime = () => {
     const now = new Date();
@@ -29,13 +31,12 @@ const Reception = () => {
       }
       return prev;
     });
-    setError(''); // Limpiar errores al cambiar servicios
+    setError('');
   };
 
-  const handleGenerateTicket = () => {
+  const handleGenerateTicket = async () => {
     setError('');
     
-    // Validaciones
     if (!customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate) {
       setError("Por favor, complete todos los datos del cliente y la fecha de entrega.");
       return;
@@ -52,7 +53,6 @@ const Reception = () => {
       return;
     }
 
-    // Estructura JSON exacta requerida para el backend y BD
     const payload = {
       cliente: {
         nombre: customer.name,
@@ -63,7 +63,7 @@ const Reception = () => {
       pedido: {
         fecha_entrega_limite: new Date(deliveryDate).toISOString(),
         observaciones: observaciones || "Sin observaciones",
-        id_usuario: 1 // Por defecto, se conectará al auth luego
+        id_usuario: 1
       },
       detalles: selectedServices.map(s => ({
         id_servicio: s.id,
@@ -72,21 +72,44 @@ const Reception = () => {
       }))
     };
 
-    console.log("=== PAYLOAD PARA BACKEND (API /pedidos) ===");
-    console.log(JSON.stringify(payload, null, 2));
+    setIsSubmitting(true);
 
-    setTicketGenerated(true);
-    setTimeout(() => {
-      setTicketGenerated(false);
-      setCustomer({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
-      setSelectedServices([]);
-      setDeliveryDate('');
-      setObservaciones('');
-    }, 4000);
+    try {
+      const response = await fetch('http://localhost:8080/api/pedidos', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al conectar con el servidor.');
+      }
+
+      setTicketUuid(data.uuidTicket);
+      setTicketGenerated(true);
+      
+      setTimeout(() => {
+        setTicketGenerated(false);
+        setCustomer({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
+        setSelectedServices([]);
+        setDeliveryDate('');
+        setObservaciones('');
+        setTicketUuid(null);
+        setIsSubmitting(false);
+      }, 4000);
+
+    } catch (err) {
+      setIsSubmitting(false);
+      setError("Fallo la conexión: " + err.message);
+    }
   };
 
   const subtotal = selectedServices.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
-  const taxes = subtotal * 0.15; // IVA 15%
+  const taxes = subtotal * 0.15;
   const total = subtotal + taxes;
 
   return (
@@ -100,7 +123,6 @@ const Reception = () => {
         <div className="lg:col-span-2">
           <CustomerForm customer={customer} setCustomer={setCustomer} />
           
-          {/* El ServiceSelector ahora usa updateQuantity en vez de toggle */}
           <ServiceSelector selectedServices={selectedServices} updateQuantity={updateQuantity} />
           
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
@@ -176,23 +198,28 @@ const Reception = () => {
             </div>
 
             {error && (
-              <div className="mb-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+              <div className="mb-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100 animate-in fade-in">
                 {error}
               </div>
             )}
 
             <button
               onClick={handleGenerateTicket}
-              disabled={ticketGenerated || selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate}
+              disabled={isSubmitting || ticketGenerated || selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate}
               className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg ${
                 ticketGenerated 
                   ? 'bg-emerald-500 text-white shadow-emerald-500/30' 
-                  : selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate
+                  : (isSubmitting || selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate)
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
                     : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-600/40 transform hover:-translate-y-1'
               }`}
             >
-              {ticketGenerated ? (
+              {isSubmitting ? (
+                <>
+                  <Loader2 size={24} className="animate-spin" />
+                  Procesando...
+                </>
+              ) : ticketGenerated ? (
                 <>
                   <CheckCircle2 size={24} className="animate-bounce" />
                   Pedido Generado
@@ -200,15 +227,16 @@ const Reception = () => {
               ) : (
                 <>
                   <QrCode size={24} />
-                  Procesar Pedido
+                  Confirmar Pedido
                   <ArrowRight size={20} className="ml-1" />
                 </>
               )}
             </button>
             
             {ticketGenerated && (
-              <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-center text-xs font-bold border border-emerald-100 animate-pulse">
-                El JSON fue enviado. Ticket y correo de confirmación generados.
+              <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-center text-xs border border-emerald-100 animate-in slide-in-from-bottom-2 fade-in">
+                <p className="font-bold mb-1">¡Ticket Registrado en Base de Datos!</p>
+                <p className="font-mono text-emerald-600 text-[10px] break-all">{ticketUuid}</p>
               </div>
             )}
           </div>
