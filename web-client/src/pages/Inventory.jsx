@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Package, AlertTriangle, CheckCircle, TrendingUp, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Package, AlertTriangle, CheckCircle, TrendingUp, Plus, Minus, X, CheckCircle2 } from 'lucide-react';
 
 const initialInventory = [
   { id: 1, name: 'Detergente Líquido Industrial', currentQty: 15, unit: 'Litros', minStock: 20 },
@@ -12,6 +12,25 @@ const initialInventory = [
 
 const Inventory = () => {
   const [inventory, setInventory] = useState(initialInventory);
+  
+  // Modal & Toast States
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    unit: 'Unidades',
+    currentQty: '',
+    minStock: ''
+  });
+
+  // Cerrar modal con la tecla Esc
+  useEffect(() => {
+    const handleEsc = (e) => {
+      if (e.key === 'Escape') setIsModalOpen(false);
+    };
+    window.addEventListener('keydown', handleEsc);
+    return () => window.removeEventListener('keydown', handleEsc);
+  }, []);
 
   const handleStockChange = (id, change) => {
     setInventory(prev => prev.map(item => {
@@ -29,18 +48,159 @@ const Inventory = () => {
     return 'ok';
   };
 
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    // Validación básica
+    if (!formData.name.trim() || formData.currentQty === '' || formData.minStock === '') {
+      return; // El form de HTML5 requerirá los campos de todos modos, esto es doble seguridad.
+    }
+
+    setInventory(prev => [...prev, {
+      id: Date.now(),
+      name: formData.name,
+      unit: formData.unit,
+      currentQty: parseInt(formData.currentQty),
+      minStock: parseInt(formData.minStock)
+    }]);
+
+    setIsModalOpen(false);
+    setFormData({ name: '', unit: 'Unidades', currentQty: '', minStock: '' });
+    
+    // Mostrar Toast
+    setToastMessage('Suministro agregado exitosamente');
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
   const totalProducts = inventory.length;
   const criticalProducts = inventory.filter(item => getStatus(item) === 'critical').length;
-  const warningProducts = inventory.filter(item => getStatus(item) === 'warning').length;
 
   return (
-    <div className="max-w-6xl mx-auto animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto animate-in fade-in duration-500 relative">
+      
+      {/* Toast Notification */}
+      {toastMessage && (
+        <div className="fixed top-8 right-8 z-50 bg-emerald-600 text-white px-6 py-4 rounded-xl shadow-xl flex items-center gap-3 animate-in slide-in-from-right-8 fade-in duration-300">
+          <CheckCircle2 size={24} />
+          <span className="font-bold">{toastMessage}</span>
+        </div>
+      )}
+
+      {/* Modal Component */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-in fade-in duration-200"
+             onClick={() => setIsModalOpen(false)}>
+          <div 
+            className="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-in zoom-in-95 duration-200"
+            onClick={e => e.stopPropagation()} // Evitar que el clic dentro del modal lo cierre
+          >
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+                <div className="bg-primary-100 p-2 rounded-lg text-primary-600">
+                  <Package size={20} />
+                </div>
+                Nuevo Suministro
+              </h2>
+              <button 
+                onClick={() => setIsModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+              >
+                <X size={24} />
+              </button>
+            </div>
+            
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Nombre del Producto</label>
+                <input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  required
+                  placeholder="Ej. Detergente Suave"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700"
+                />
+              </div>
+              
+              <div className="grid grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Unidad de Medida</label>
+                  <select
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleInputChange}
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-white"
+                  >
+                    <option value="Litros">Litros</option>
+                    <option value="Kilogramos">Kilogramos</option>
+                    <option value="Unidades">Unidades</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-bold text-slate-700 mb-2">Stock Inicial</label>
+                  <input
+                    type="number"
+                    name="currentQty"
+                    min="0"
+                    required
+                    value={formData.currentQty}
+                    onChange={handleInputChange}
+                    placeholder="Ej. 50"
+                    className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">Punto de Reorden (Alerta)</label>
+                <input
+                  type="number"
+                  name="minStock"
+                  min="1"
+                  required
+                  value={formData.minStock}
+                  onChange={handleInputChange}
+                  placeholder="Stock mínimo para recibir alerta"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700"
+                />
+              </div>
+
+              <div className="pt-4 flex justify-end gap-3 border-t border-slate-100">
+                <button 
+                  type="button"
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-3 rounded-xl font-bold text-slate-600 bg-white border border-slate-200 hover:bg-slate-50 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="px-6 py-3 rounded-xl font-bold text-white bg-primary-600 hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-600/30 transition-all"
+                >
+                  Agregar Suministro
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Main UI */}
       <div className="mb-8 flex flex-col md:flex-row md:justify-between md:items-end gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Inventario de Suministros</h1>
           <p className="text-slate-500 mt-2 text-lg">Gestione los niveles de stock y reciba alertas tempranas de reabastecimiento.</p>
         </div>
-        <button className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-600/30 transition-all flex items-center justify-center gap-2">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="bg-primary-600 text-white px-6 py-3 rounded-xl font-bold hover:bg-primary-700 hover:shadow-lg hover:shadow-primary-600/30 transition-all flex items-center justify-center gap-2 transform hover:-translate-y-0.5"
+        >
           <Plus size={20} />
           Nuevo Suministro
         </button>
@@ -125,14 +285,14 @@ const Inventory = () => {
                       <div className="flex items-center justify-center gap-3 opacity-80 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => handleStockChange(item.id, -1)}
-                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all shadow-sm"
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-all shadow-sm active:scale-90 active:bg-red-100"
                           title="Consumir 1 unidad"
                         >
                           <Minus size={18} />
                         </button>
                         <button 
                           onClick={() => handleStockChange(item.id, 1)}
-                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm"
+                          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-emerald-50 hover:text-emerald-600 hover:border-emerald-200 transition-all shadow-sm active:scale-90 active:bg-emerald-100"
                           title="Ingresar 1 unidad"
                         >
                           <Plus size={18} />

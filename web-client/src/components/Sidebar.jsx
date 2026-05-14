@@ -1,14 +1,17 @@
 import React from 'react';
 import { ClipboardList, Package, Receipt, FileText, Users, Droplets } from 'lucide-react';
 
-const Sidebar = ({ currentPage, setCurrentPage }) => {
+const Sidebar = ({ currentPage, setCurrentPage, currentUserRole, setCurrentUserRole }) => {
   const menuItems = [
-    { name: 'Recepción', icon: <ClipboardList size={20} /> },
-    { name: 'Inventario', icon: <Package size={20} /> },
-    { name: 'Facturación', icon: <Receipt size={20} /> },
-    { name: 'Reportes', icon: <FileText size={20} /> },
-    { name: 'Usuarios', icon: <Users size={20} /> },
+    { name: 'Recepción', icon: <ClipboardList size={20} />, requiresAdmin: false },
+    { name: 'Inventario', icon: <Package size={20} />, requiresAdmin: false },
+    { name: 'Facturación', icon: <Receipt size={20} />, requiresAdmin: false },
+    { name: 'Reportes', icon: <FileText size={20} />, requiresAdmin: false },
+    { name: 'Usuarios', icon: <Users size={20} />, requiresAdmin: true },
   ];
+
+  // Filtramos el menú según el rol
+  const visibleMenuItems = menuItems.filter(item => !item.requiresAdmin || currentUserRole === 'ADMIN');
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-64 bg-primary-900 text-white flex flex-col shadow-xl z-20">
@@ -20,7 +23,7 @@ const Sidebar = ({ currentPage, setCurrentPage }) => {
       </div>
       
       <nav className="flex-1 py-6 px-4 space-y-2">
-        {menuItems.map((item, index) => {
+        {visibleMenuItems.map((item, index) => {
           const isActive = currentPage === item.name;
           return (
             <a
@@ -56,14 +59,27 @@ const Sidebar = ({ currentPage, setCurrentPage }) => {
       </div>
 
       <div className="p-6 border-t border-primary-800">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-primary-700 flex items-center justify-center font-bold text-lg">
-            A
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${currentUserRole === 'ADMIN' ? 'bg-primary-700' : 'bg-slate-700'}`}>
+              {currentUserRole === 'ADMIN' ? 'A' : 'O'}
+            </div>
+            <div>
+              <p className="text-sm font-medium">Yair Ochoa</p>
+              <p className="text-xs text-primary-300">{currentUserRole === 'ADMIN' ? 'Administrator' : 'Operador'}</p>
+            </div>
           </div>
-          <div>
-            <p className="text-sm font-medium">Admin User</p>
-            <p className="text-xs text-primary-300">Administrator</p>
-          </div>
+          <button 
+            onClick={() => {
+              const newRole = currentUserRole === 'ADMIN' ? 'OPERATOR' : 'ADMIN';
+              setCurrentUserRole(newRole);
+              if (newRole !== 'ADMIN' && currentPage === 'Usuarios') setCurrentPage('Recepción');
+            }}
+            className="text-xs bg-primary-800 hover:bg-primary-700 px-2 py-1 rounded"
+            title="Cambiar Rol (Demo)"
+          >
+            ↔
+          </button>
         </div>
       </div>
     </aside>

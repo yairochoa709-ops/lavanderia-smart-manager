@@ -5,25 +5,36 @@ import Inventory from './pages/Inventory';
 import Billing from './pages/Billing';
 import Tracking from './pages/Tracking';
 import Reports from './pages/Reports';
+import Users from './pages/Users';
 
 function App() {
   const [currentPage, setCurrentPage] = useState('Recepción');
+  // Mock auth state for RBAC demonstration
+  const [currentUserRole, setCurrentUserRole] = useState('ADMIN'); // 'ADMIN' or 'OPERATOR'
 
   const isPublicPage = currentPage === 'Tracking';
 
   return (
     <div className="flex min-h-screen bg-slate-50 font-sans">
-      {!isPublicPage && <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} />}
+      {!isPublicPage && (
+        <Sidebar 
+          currentPage={currentPage} 
+          setCurrentPage={setCurrentPage} 
+          currentUserRole={currentUserRole}
+          setCurrentUserRole={setCurrentUserRole} // Just for demo toggling
+        />
+      )}
       
       <main className={`flex-1 overflow-y-auto ${!isPublicPage ? 'ml-64 p-8' : ''}`}>
         {currentPage === 'Recepción' && <Reception />}
         {currentPage === 'Inventario' && <Inventory />}
         {currentPage === 'Facturación' && <Billing />}
         {currentPage === 'Reportes' && <Reports />}
+        {currentPage === 'Usuarios' && currentUserRole === 'ADMIN' && <Users />}
         {currentPage === 'Tracking' && <Tracking onBack={() => setCurrentPage('Recepción')} />}
         
         {/* Placeholder for other pages */}
-        {!isPublicPage && currentPage !== 'Recepción' && currentPage !== 'Inventario' && currentPage !== 'Facturación' && currentPage !== 'Reportes' && (
+        {!isPublicPage && !['Recepción', 'Inventario', 'Facturación', 'Reportes', 'Usuarios'].includes(currentPage) && (
           <div className="flex items-center justify-center h-full text-slate-400">
             <h2 className="text-2xl font-semibold">Módulo en construcción: {currentPage}</h2>
           </div>
