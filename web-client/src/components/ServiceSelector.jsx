@@ -1,13 +1,14 @@
 import React from 'react';
-import { Shirt, Scale, Wind, Layers } from 'lucide-react';
+import { Shirt, Scale, Wind, Layers, Plus, Minus } from 'lucide-react';
 
+// IDs actualizados para simular llaves foráneas de la BD
 const servicesList = [
-  { id: 'dry', name: 'Lavado en Seco', icon: Wind, price: 5.50 },
-  { id: 'weight', name: 'Por Peso', icon: Scale, price: 1.50 },
-  { id: 'ironing', name: 'Planchado', icon: Shirt, price: 2.00 },
+  { id: 1, name: 'Lavado en Seco', icon: Wind, price: 5.50 },
+  { id: 2, name: 'Por Peso', icon: Scale, price: 1.50 },
+  { id: 3, name: 'Planchado', icon: Shirt, price: 2.00 },
 ];
 
-const ServiceSelector = ({ selectedServices, toggleService }) => {
+const ServiceSelector = ({ selectedServices, updateQuantity }) => {
   return (
     <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
       <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
@@ -18,22 +19,24 @@ const ServiceSelector = ({ selectedServices, toggleService }) => {
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {servicesList.map((service) => {
-          const isSelected = selectedServices.some(s => s.id === service.id);
+          const selectedItem = selectedServices.find(s => s.id === service.id);
+          const qty = selectedItem ? selectedItem.qty : 0;
+          const isSelected = qty > 0;
           const Icon = service.icon;
+
           return (
             <div
               key={service.id}
-              onClick={() => toggleService(service)}
-              className={`cursor-pointer border-2 rounded-2xl p-5 flex flex-col items-center justify-center gap-4 transition-all duration-300 transform hover:-translate-y-1 ${
+              className={`border-2 rounded-2xl p-5 flex flex-col items-center justify-center gap-4 transition-all duration-300 ${
                 isSelected 
                   ? 'border-primary-500 bg-primary-50/40 shadow-lg shadow-primary-500/10' 
-                  : 'border-slate-100 hover:border-primary-200 hover:bg-slate-50'
+                  : 'border-slate-100 bg-slate-50'
               }`}
             >
               <div className={`p-4 rounded-full transition-colors duration-300 ${
                 isSelected 
                   ? 'bg-primary-500 text-white shadow-md shadow-primary-500/40' 
-                  : 'bg-slate-100 text-slate-500 group-hover:bg-primary-100 group-hover:text-primary-600'
+                  : 'bg-white text-slate-500 shadow-sm'
               }`}>
                 <Icon size={32} strokeWidth={isSelected ? 2.5 : 2} />
               </div>
@@ -46,6 +49,26 @@ const ServiceSelector = ({ selectedServices, toggleService }) => {
                 }`}>
                   Base: ${service.price.toFixed(2)}
                 </div>
+              </div>
+              
+              {/* Controles de cantidad */}
+              <div className="flex items-center gap-3 mt-2 bg-white rounded-xl shadow-sm border border-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => updateQuantity(service, -1)}
+                  disabled={qty === 0}
+                  className={`p-2 rounded-lg transition-colors ${qty > 0 ? 'text-slate-600 hover:bg-slate-100 active:scale-95' : 'text-slate-300 cursor-not-allowed'}`}
+                >
+                  <Minus size={18} />
+                </button>
+                <span className="font-bold w-8 text-center text-xl text-slate-800">{qty}</span>
+                <button
+                  type="button"
+                  onClick={() => updateQuantity(service, 1)}
+                  className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 active:scale-95 transition-all"
+                >
+                  <Plus size={18} />
+                </button>
               </div>
             </div>
           );

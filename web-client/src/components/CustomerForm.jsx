@@ -1,5 +1,5 @@
 import React from 'react';
-import { User, CreditCard, Phone } from 'lucide-react';
+import { User, CreditCard, Phone, Mail } from 'lucide-react';
 
 const CustomerForm = ({ customer, setCustomer }) => {
   const handleChange = (e) => {
@@ -36,7 +36,7 @@ const CustomerForm = ({ customer, setCustomer }) => {
         </div>
         Datos del Cliente
       </h2>
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <label className="block text-sm font-semibold text-slate-700 mb-2">Nombre Completo</label>
           <div className="relative group">
@@ -50,6 +50,22 @@ const CustomerForm = ({ customer, setCustomer }) => {
               onChange={handleChange}
               className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white"
               placeholder="Ej. Juan Pérez"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-semibold text-slate-700 mb-2">Correo Electrónico</label>
+          <div className="relative group">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400 group-focus-within:text-primary-500 transition-colors">
+              <Mail size={18} />
+            </div>
+            <input
+              type="email"
+              name="email"
+              value={customer.email || ''}
+              onChange={handleChange}
+              className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white"
+              placeholder="cliente@correo.com"
             />
           </div>
         </div>

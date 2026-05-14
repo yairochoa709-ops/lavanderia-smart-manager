@@ -1,66 +1,91 @@
 import React, { useState } from 'react';
 import CustomerForm from '../components/CustomerForm';
 import ServiceSelector from '../components/ServiceSelector';
-import { Calendar, QrCode, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare } from 'lucide-react';
 
 const Reception = () => {
-  const [customer, setCustomer] = useState({ name: '', idType: 'CEDULA', id: '', phone: '' });
-  const [selectedServices, setSelectedServices] = useState([]);
+  const [customer, setCustomer] = useState({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
+  const [selectedServices, setSelectedServices] = useState([]); // Ahora guardará objetos con { ...service, qty }
   const [deliveryDate, setDeliveryDate] = useState('');
+  const [observaciones, setObservaciones] = useState('');
   const [ticketGenerated, setTicketGenerated] = useState(false);
+  const [error, setError] = useState('');
 
-  // Generar fecha mínima para evitar seleccionar fechas pasadas
   const getMinDateTime = () => {
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     return now.toISOString().slice(0, 16);
   };
 
-  const toggleService = (service) => {
+  const updateQuantity = (service, change) => {
     setSelectedServices(prev => {
-      const exists = prev.find(s => s.id === service.id);
-      if (exists) {
-        return prev.filter(s => s.id !== service.id);
-      } else {
-        return [...prev, service];
+      const existing = prev.find(s => s.id === service.id);
+      if (existing) {
+        const newQty = Math.max(0, existing.qty + change);
+        if (newQty === 0) return prev.filter(s => s.id !== service.id);
+        return prev.map(s => s.id === service.id ? { ...s, qty: newQty } : s);
+      } else if (change > 0) {
+        return [...prev, { ...service, qty: 1 }];
       }
+      return prev;
     });
+    setError(''); // Limpiar errores al cambiar servicios
   };
 
   const handleGenerateTicket = () => {
-    if (!customer.name || !customer.id || !customer.phone || selectedServices.length === 0 || !deliveryDate) {
-      alert("Por favor, complete todos los campos obligatorios (Cliente, Servicios y Fecha de Entrega).");
+    setError('');
+    
+    // Validaciones
+    if (!customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate) {
+      setError("Por favor, complete todos los datos del cliente y la fecha de entrega.");
       return;
     }
 
-    const ticketData = {
-      customer: { ...customer },
-      services: selectedServices.map(s => ({ id: s.id, name: s.name, price: s.price })),
-      financials: {
-        subtotal: Number(subtotal.toFixed(2)),
-        taxRate: 0.15,
-        taxes: Number(taxes.toFixed(2)),
-        total: Number(total.toFixed(2))
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(customer.email)) {
+      setError("El correo electrónico ingresado no tiene un formato válido.");
+      return;
+    }
+
+    if (selectedServices.length === 0) {
+      setError("Debe agregar al menos un servicio con cantidad mayor a cero.");
+      return;
+    }
+
+    // Estructura JSON exacta requerida para el backend y BD
+    const payload = {
+      cliente: {
+        nombre: customer.name,
+        cedula_ruc: customer.id,
+        telefono: customer.phone,
+        email: customer.email
       },
-      estimatedDeliveryDate: new Date(deliveryDate).toISOString(),
-      status: "PENDIENTE",
-      createdAt: new Date().toISOString()
+      pedido: {
+        fecha_entrega_limite: new Date(deliveryDate).toISOString(),
+        observaciones: observaciones || "Sin observaciones",
+        id_usuario: 1 // Por defecto, se conectará al auth luego
+      },
+      detalles: selectedServices.map(s => ({
+        id_servicio: s.id,
+        cantidad: s.qty,
+        subtotal_servicio: Number((s.price * s.qty).toFixed(2))
+      }))
     };
 
-    console.log("=== TICKET GENERADO (JSON LISTO PARA ENVIAR AL BACKEND JAVA) ===");
-    console.log(JSON.stringify(ticketData, null, 2));
+    console.log("=== PAYLOAD PARA BACKEND (API /pedidos) ===");
+    console.log(JSON.stringify(payload, null, 2));
 
-    // Simulate ticket generation delay for UI
     setTicketGenerated(true);
     setTimeout(() => {
       setTicketGenerated(false);
-      setCustomer({ name: '', idType: 'CEDULA', id: '', phone: '' });
+      setCustomer({ name: '', idType: 'CEDULA', id: '', phone: '', email: '' });
       setSelectedServices([]);
       setDeliveryDate('');
-    }, 3000);
+      setObservaciones('');
+    }, 4000);
   };
 
-  const subtotal = selectedServices.reduce((acc, curr) => acc + curr.price, 0);
+  const subtotal = selectedServices.reduce((acc, curr) => acc + (curr.price * curr.qty), 0);
   const taxes = subtotal * 0.15; // IVA 15%
   const total = subtotal + taxes;
 
@@ -74,24 +99,38 @@ const Reception = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <CustomerForm customer={customer} setCustomer={setCustomer} />
-          <ServiceSelector selectedServices={selectedServices} toggleService={toggleService} />
+          
+          {/* El ServiceSelector ahora usa updateQuantity en vez de toggle */}
+          <ServiceSelector selectedServices={selectedServices} updateQuantity={updateQuantity} />
           
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
             <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
               <div className="bg-primary-100 p-2 rounded-lg">
                 <Calendar size={20} className="text-primary-600" />
               </div>
-              Entrega Estimada
+              Entrega y Detalles
             </h2>
-            <div className="relative group max-w-sm">
-              <input
-                type="datetime-local"
-                value={deliveryDate}
-                onChange={(e) => setDeliveryDate(e.target.value)}
-                min={getMinDateTime()}
-                className="w-full pl-4 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white font-medium"
-                required
-              />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2">Fecha Estimada de Entrega</label>
+                <input
+                  type="datetime-local"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  min={getMinDateTime()}
+                  className="w-full pl-4 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white font-medium"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-2 flex items-center gap-1"><MessageSquare size={16}/> Observaciones Especiales</label>
+                <textarea
+                  value={observaciones}
+                  onChange={(e) => setObservaciones(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white h-[50px]"
+                  placeholder="Ej. Entregar en funda extra"
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -106,19 +145,22 @@ const Reception = () => {
                   <div className="p-3 bg-slate-50 rounded-full">
                     <QrCode size={24} className="opacity-50" />
                   </div>
-                  <p className="text-sm italic">No hay servicios seleccionados</p>
+                  <p className="text-sm italic">Agregue servicios usando el botón +</p>
                 </div>
               ) : (
                 selectedServices.map(service => (
                   <div key={service.id} className="flex justify-between items-center text-sm p-3 bg-slate-50 rounded-xl">
-                    <span className="text-slate-700 font-semibold">{service.name}</span>
-                    <span className="text-slate-900 font-bold">${service.price.toFixed(2)}</span>
+                    <div className="flex flex-col">
+                      <span className="text-slate-700 font-bold">{service.name}</span>
+                      <span className="text-slate-500 text-xs">{service.qty} {service.qty === 1 ? 'unidad' : 'unidades'} x ${service.price.toFixed(2)}</span>
+                    </div>
+                    <span className="text-slate-900 font-bold">${(service.price * service.qty).toFixed(2)}</span>
                   </div>
                 ))
               )}
             </div>
             
-            <div className="border-t border-slate-100 pt-6 mb-8 space-y-3">
+            <div className="border-t border-slate-100 pt-6 mb-6 space-y-3">
               <div className="flex justify-between items-center text-sm">
                 <span className="text-slate-500">Subtotal</span>
                 <span className="text-slate-700 font-semibold">${subtotal.toFixed(2)}</span>
@@ -133,13 +175,19 @@ const Reception = () => {
               </div>
             </div>
 
+            {error && (
+              <div className="mb-4 text-xs font-bold text-red-600 bg-red-50 p-3 rounded-lg border border-red-100">
+                {error}
+              </div>
+            )}
+
             <button
               onClick={handleGenerateTicket}
-              disabled={ticketGenerated || selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !deliveryDate}
+              disabled={ticketGenerated || selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate}
               className={`w-full py-4 rounded-xl font-bold text-lg flex items-center justify-center gap-2 transition-all duration-300 shadow-lg ${
                 ticketGenerated 
                   ? 'bg-emerald-500 text-white shadow-emerald-500/30' 
-                  : selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !deliveryDate
+                  : selectedServices.length === 0 || !customer.name || !customer.id || !customer.phone || !customer.email || !deliveryDate
                     ? 'bg-slate-100 text-slate-400 cursor-not-allowed shadow-none'
                     : 'bg-primary-600 text-white hover:bg-primary-700 hover:shadow-primary-600/40 transform hover:-translate-y-1'
               }`}
@@ -147,20 +195,20 @@ const Reception = () => {
               {ticketGenerated ? (
                 <>
                   <CheckCircle2 size={24} className="animate-bounce" />
-                  Ticket Generado
+                  Pedido Generado
                 </>
               ) : (
                 <>
                   <QrCode size={24} />
-                  Generar Ticket
+                  Procesar Pedido
                   <ArrowRight size={20} className="ml-1" />
                 </>
               )}
             </button>
             
             {ticketGenerated && (
-              <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-center text-sm font-medium border border-emerald-100 animate-pulse">
-                Enlace único generado y listo para enviar.
+              <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-center text-xs font-bold border border-emerald-100 animate-pulse">
+                El JSON fue enviado. Ticket y correo de confirmación generados.
               </div>
             )}
           </div>
