@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar, Loader2 } from 'lucide-react';
 
+// Cada step.id corresponde al id_estado de la tabla estado_proceso
 const steps = [
-  { id: 'RECIBIDO', label: 'Recibido', icon: Package },
-  { id: 'LAVADO', label: 'En Proceso', icon: Clock },
-  { id: 'LISTO', label: 'Listo para Retiro', icon: MapPin },
-  { id: 'ENTREGADO', label: 'Entregado', icon: CheckCircle2 }
+  { id: 1, label: 'Recibido', icon: Package },
+  { id: 2, label: 'En Proceso', icon: Clock },
+  { id: 3, label: 'Listo para Retiro', icon: MapPin },
+  { id: 4, label: 'Entregado', icon: CheckCircle2 }
 ];
 
 const PENALTY_PER_DAY = 0.50;
@@ -45,8 +46,8 @@ const Tracking = ({ onBack }) => {
     }
   };
 
-  const calculatePenalty = (estimatedDateString, status) => {
-    if (status === 'ENTREGADO') return { daysLate: 0, penaltyAmount: 0 };
+  const calculatePenalty = (estimatedDateString, status, idEstado) => {
+    if (status === 'ENTREGADO' || idEstado === 4) return { daysLate: 0, penaltyAmount: 0 };
 
     const estimatedDate = new Date(estimatedDateString);
     const currentDate = new Date();
@@ -57,23 +58,18 @@ const Tracking = ({ onBack }) => {
     const diffTime = curr - est;
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
     
-    if (diffDays > 0 && status === 'LISTO') {
+    if (diffDays > 0 && (status === 'LISTO' || idEstado === 3)) {
       return { daysLate: diffDays, penaltyAmount: diffDays * PENALTY_PER_DAY };
     }
     
     return { daysLate: 0, penaltyAmount: 0 };
   };
 
-  const getStepStatus = (currentStatus, stepId) => {
-    // Si el estado viene diferente desde DB, aseguramos mayúsculas
-    const normalizedStatus = currentStatus ? currentStatus.toUpperCase() : 'RECIBIDO';
-    const statusIndex = steps.findIndex(s => s.id === normalizedStatus);
-    const stepIndex = steps.findIndex(s => s.id === stepId);
-
-    if (statusIndex === -1) return 'pending'; // Fallback por si hay estado nuevo no mapeado
-
-    if (stepIndex < statusIndex) return 'completed';
-    if (stepIndex === statusIndex) return 'current';
+  // Usamos el idEstado numérico para una comparación exacta e inequívoca
+  const getStepStatus = (currentIdEstado, stepId) => {
+    const currentId = currentIdEstado ?? 1;
+    if (stepId < currentId) return 'completed';
+    if (stepId === currentId) return 'current';
     return 'pending';
   };
 
@@ -175,7 +171,7 @@ const Tracking = ({ onBack }) => {
                 <div className="hidden sm:block absolute top-6 left-12 right-12 h-1 bg-slate-100 -z-10 rounded-full"></div>
                 
                 {steps.map((step, index) => {
-                  const status = getStepStatus(orderData.estadoActual, step.id);
+                  const status = getStepStatus(orderData.idEstado, step.id);
                   const Icon = step.icon;
                   
                   let iconBg = 'bg-slate-100 text-slate-400';
@@ -212,7 +208,7 @@ const Tracking = ({ onBack }) => {
 
             {/* Alerta de Recargo */}
             {(() => {
-              const { daysLate, penaltyAmount } = calculatePenalty(orderData.fechaEntregaPactada, orderData.estadoActual);
+              const { daysLate, penaltyAmount } = calculatePenalty(orderData.fechaEntregaPactada, orderData.estadoActual, orderData.idEstado);
               if (daysLate > 0) {
                 return (
                   <div className="bg-amber-50 border-l-4 border-amber-500 p-6 rounded-r-2xl mb-8 flex items-start gap-4 shadow-sm animate-in fade-in duration-500">

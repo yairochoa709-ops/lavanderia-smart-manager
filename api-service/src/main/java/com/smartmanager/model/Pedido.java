@@ -33,8 +33,9 @@ public class Pedido {
     @JoinColumn(name = "id_cliente")
     private Cliente cliente;
 
-    @Column(name = "estado_proceso", length = 20)
-    private String estadoProceso = "Recibido";
+    @ManyToOne
+    @JoinColumn(name = "id_estado")
+    private EstadoProceso estado;
 
     @Column(columnDefinition = "TEXT")
     private String observaciones;

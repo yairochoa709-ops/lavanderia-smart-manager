@@ -26,11 +26,17 @@ public class SeguimientoService {
     public SeguimientoDTO consultarSeguimiento(String criterio) {
         Optional<Pedido> pedidoOpt;
 
-        // Intentar parsear como UUID, si falla buscar por cédula
+        // Intentar parsear como UUID (busca por uuid_seguimiento Y uuid_ticket)
         try {
             UUID uuid = UUID.fromString(criterio);
+            // Primero intenta por uuid_seguimiento (link del QR)
             pedidoOpt = pedidoRepository.findByUuidSeguimiento(uuid);
+            // Si no encuentra, intenta por uuid_ticket
+            if (pedidoOpt.isEmpty()) {
+                pedidoOpt = pedidoRepository.findByUuidTicket(uuid);
+            }
         } catch (IllegalArgumentException e) {
+            // Si no es UUID, busca por cédula del cliente
             pedidoOpt = pedidoRepository.findFirstByCliente_CedulaRucOrderByFechaRecepcionDesc(criterio);
         }
 
@@ -60,12 +66,15 @@ public class SeguimientoService {
                 .collect(Collectors.toList());
 
         // Asegurar que el estado esté en MAYÚSCULAS para coincidir con la lógica del Frontend
-        String estadoActualFrontend = pedido.getEstadoProceso() != null ? pedido.getEstadoProceso().toUpperCase() : "RECIBIDO";
+        String estadoActualFrontend = (pedido.getEstado() != null && pedido.getEstado().getNombreEstado() != null) 
+                ? pedido.getEstado().getNombreEstado().toUpperCase() 
+                : "RECIBIDO";
 
         return SeguimientoDTO.builder()
                 .idTicket(pedido.getUuidTicket().toString()) // Frontend mostrará el ticket visualmente
                 .nombreCliente(primerNombre)
                 .estadoActual(estadoActualFrontend)
+                .idEstado(pedido.getEstado() != null ? pedido.getEstado().getIdEstado() : 1)
                 .fechaEntregaPactada(pedido.getFechaEntregaLimite())
                 .totalFinal(totalFinal)
                 .servicios(serviciosDTO)
