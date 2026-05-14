@@ -25,7 +25,8 @@ const Tracking = ({ onBack }) => {
     setOrderData(null);
 
     try {
-      const response = await fetch(`http://localhost:8080/api/public/seguimiento/${encodeURIComponent(searchTerm)}`);
+      const backendUrl = `http://${window.location.hostname}:8080/api/public/seguimiento/${encodeURIComponent(searchTerm)}`;
+      const response = await fetch(backendUrl);
       
       if (!response.ok) {
         if (response.status === 404) {

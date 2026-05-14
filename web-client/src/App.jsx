@@ -8,7 +8,13 @@ import Reports from './pages/Reports';
 import Users from './pages/Users';
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('Recepción');
+  const [currentPage, setCurrentPage] = useState(() => {
+    // Si la URL es la del escáner QR, abrimos directamente la vista de Tracking
+    if (window.location.pathname.startsWith('/seguimiento')) {
+      return 'Tracking';
+    }
+    return 'Recepción';
+  });
   // Mock auth state for RBAC demonstration
   const [currentUserRole, setCurrentUserRole] = useState('ADMIN'); // 'ADMIN' or 'OPERATOR'
 
