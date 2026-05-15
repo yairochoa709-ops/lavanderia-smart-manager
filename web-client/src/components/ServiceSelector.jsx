@@ -23,6 +23,7 @@ const ServiceSelector = ({ selectedServices, updateQuantity }) => {
           const qty = selectedItem ? selectedItem.qty : 0;
           const isSelected = qty > 0;
           const Icon = service.icon;
+          const isWeightService = service.id === 2;
 
           return (
             <div
@@ -51,25 +52,47 @@ const ServiceSelector = ({ selectedServices, updateQuantity }) => {
                 </div>
               </div>
               
-              {/* Controles de cantidad */}
-              <div className="flex items-center gap-3 mt-2 bg-white rounded-xl shadow-sm border border-slate-100 p-1">
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(service, -1)}
-                  disabled={qty === 0}
-                  className={`p-2 rounded-lg transition-colors ${qty > 0 ? 'text-slate-600 hover:bg-slate-100 active:scale-95' : 'text-slate-300 cursor-not-allowed'}`}
-                >
-                  <Minus size={18} />
-                </button>
-                <span className="font-bold w-8 text-center text-xl text-slate-800">{qty}</span>
-                <button
-                  type="button"
-                  onClick={() => updateQuantity(service, 1)}
-                  className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 active:scale-95 transition-all"
-                >
-                  <Plus size={18} />
-                </button>
-              </div>
+              {/* Controles de cantidad o Peso */}
+              {isWeightService ? (
+                <div className="flex flex-col items-center gap-1 w-full">
+                  <div className="flex items-center gap-2 bg-white rounded-xl shadow-sm border border-slate-100 p-2 w-full max-w-[140px]">
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="0"
+                      placeholder="0.0 Kg"
+                      value={qty || ''}
+                      onChange={(e) => updateQuantity(service, parseFloat(e.target.value) || 0, true)}
+                      className="w-full text-center font-bold text-lg text-slate-800 outline-none bg-transparent"
+                    />
+                    <span className="text-slate-400 font-bold text-xs uppercase">Kg</span>
+                  </div>
+                  {qty > 0 && (
+                    <span className="text-[10px] text-primary-600 font-bold animate-in fade-in slide-in-from-top-1">
+                      Subtotal: ${(qty * service.price).toFixed(2)}
+                    </span>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-3 mt-2 bg-white rounded-xl shadow-sm border border-slate-100 p-1">
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(service, -1)}
+                    disabled={qty === 0}
+                    className={`p-2 rounded-lg transition-colors ${qty > 0 ? 'text-slate-600 hover:bg-slate-100 active:scale-95' : 'text-slate-300 cursor-not-allowed'}`}
+                  >
+                    <Minus size={18} />
+                  </button>
+                  <span className="font-bold w-8 text-center text-xl text-slate-800">{qty}</span>
+                  <button
+                    type="button"
+                    onClick={() => updateQuantity(service, 1)}
+                    className="p-2 rounded-lg text-primary-600 hover:bg-primary-50 active:scale-95 transition-all"
+                  >
+                    <Plus size={18} />
+                  </button>
+                </div>
+              )}
             </div>
           );
         })}

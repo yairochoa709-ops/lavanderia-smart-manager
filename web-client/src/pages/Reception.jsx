@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import CustomerForm from '../components/CustomerForm';
 import ServiceSelector from '../components/ServiceSelector';
-import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2, X } from 'lucide-react';
+import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2, X, Wind } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 
 const Reception = () => {
@@ -14,6 +14,10 @@ const Reception = () => {
   const [error, setError] = useState('');
   const [ticketUuid, setTicketUuid] = useState(null);
   
+  // Nuevos estados para Especificaciones de Carga
+  const [clasificacion, setClasificacion] = useState('Blanca');
+  const [ciclo, setCiclo] = useState('Normal');
+  
   // Estado para el modal del QR genérico
   const [showQrModal, setShowQrModal] = useState(false);
 
@@ -23,15 +27,15 @@ const Reception = () => {
     return now.toISOString().slice(0, 16);
   };
 
-  const updateQuantity = (service, change) => {
+  const updateQuantity = (service, change, isAbsolute = false) => {
     setSelectedServices(prev => {
       const existing = prev.find(s => s.id === service.id);
       if (existing) {
-        const newQty = Math.max(0, existing.qty + change);
+        const newQty = isAbsolute ? change : Math.max(0, existing.qty + change);
         if (newQty === 0) return prev.filter(s => s.id !== service.id);
         return prev.map(s => s.id === service.id ? { ...s, qty: newQty } : s);
       } else if (change > 0) {
-        return [...prev, { ...service, qty: 1 }];
+        return [...prev, { ...service, qty: change }];
       }
       return prev;
     });
@@ -57,6 +61,11 @@ const Reception = () => {
       return;
     }
 
+    // Handoff de Datos: Empaquetar nuevos campos en observaciones
+    const weightService = selectedServices.find(s => s.id === 2);
+    const weightInfo = weightService ? `${weightService.qty} Kg` : 'N/A';
+    const finalObservaciones = `[Clasificación: ${clasificacion}] | [Ciclo: ${ciclo}] | [Peso: ${weightInfo}] | Notas: ${observaciones || "Sin notas adicionales"}`;
+
     const payload = {
       cliente: {
         nombre: customer.name,
@@ -66,7 +75,7 @@ const Reception = () => {
       },
       pedido: {
         fecha_entrega_limite: new Date(deliveryDate).toISOString(),
-        observaciones: observaciones || "Sin observaciones",
+        observaciones: finalObservaciones,
         id_usuario: 1
       },
       detalles: selectedServices.map(s => ({
@@ -103,6 +112,8 @@ const Reception = () => {
         setSelectedServices([]);
         setDeliveryDate('');
         setObservaciones('');
+        setClasificacion('Blanca');
+        setCiclo('Normal');
         setTicketUuid(null);
         setIsSubmitting(false);
       }, 4000);
@@ -141,6 +152,47 @@ const Reception = () => {
           
           <ServiceSelector selectedServices={selectedServices} updateQuantity={updateQuantity} />
           
+          {/* Nueva Sección: Especificaciones de Carga */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
+            <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
+              <div className="bg-primary-100 p-2 rounded-lg">
+                <Wind size={20} className="text-primary-600" />
+              </div>
+              Especificaciones de Carga
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Clasificación de Ropa</label>
+                <div className="flex flex-wrap gap-2">
+                  {['Blanca', 'Color/Oscura', 'Mixta'].map((tipo) => (
+                    <button
+                      key={tipo}
+                      onClick={() => setClasificacion(tipo)}
+                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                        clasificacion === tipo
+                          ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
+                          : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
+                      }`}
+                    >
+                      {tipo}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Ciclo de Tratamiento</label>
+                <select
+                  value={ciclo}
+                  onChange={(e) => setCiclo(e.target.value)}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white font-medium"
+                >
+                  <option value="Normal">Lavado Normal</option>
+                  <option value="Delicado">Lavado Delicado</option>
+                  <option value="Pesado">Lavado Pesado / Edredones</option>
+                </select>
+              </div>
+            </div>
+          </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
             <h2 className="text-lg font-bold text-slate-800 mb-5 flex items-center gap-2">
               <div className="bg-primary-100 p-2 rounded-lg">
