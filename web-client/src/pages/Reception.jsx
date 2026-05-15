@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import CustomerForm from '../components/CustomerForm';
 import ServiceSelector from '../components/ServiceSelector';
 import { Calendar, QrCode, ArrowRight, CheckCircle2, MessageSquare, Loader2, X, Wind } from 'lucide-react';
@@ -17,6 +17,15 @@ const Reception = () => {
   // Nuevos estados para Especificaciones de Carga
   const [clasificacion, setClasificacion] = useState('Blanca');
   const [ciclo, setCiclo] = useState('Normal');
+  const [totalPrendas, setTotalPrendas] = useState(1);
+  const [insumos, setInsumos] = useState([]);
+  
+  // Seguridad: Quitar cloro si no es ropa blanca
+  useEffect(() => {
+    if (clasificacion !== 'Blanca' && insumos.includes('Cloro')) {
+      setInsumos(prev => prev.filter(i => i !== 'Cloro'));
+    }
+  }, [clasificacion]);
   
   // Estado para el modal del QR genérico
   const [showQrModal, setShowQrModal] = useState(false);
@@ -61,10 +70,12 @@ const Reception = () => {
       return;
     }
 
-    // Handoff de Datos: Empaquetar nuevos campos en observaciones
+    // Handoff de Datos: Formateo Estructurado para el Backend
     const weightService = selectedServices.find(s => s.id === 2);
-    const weightInfo = weightService ? `${weightService.qty} Kg` : 'N/A';
-    const finalObservaciones = `[Clasificación: ${clasificacion}] | [Ciclo: ${ciclo}] | [Peso: ${weightInfo}] | Notas: ${observaciones || "Sin notas adicionales"}`;
+    const weightVal = weightService ? weightService.qty : 0;
+    const strInsumos = insumos.join(", ") || "Ninguno";
+    
+    const infoEstructurada = `[DETALLE: ${weightVal} Kg | ${totalPrendas} pcs | ${clasificacion}] [CICLO: ${ciclo}] [INSUMOS: ${strInsumos}] | Obs. Especiales: ${observaciones || "Sin notas adicionales"}`;
 
     const payload = {
       cliente: {
@@ -75,7 +86,7 @@ const Reception = () => {
       },
       pedido: {
         fecha_entrega_limite: new Date(deliveryDate).toISOString(),
-        observaciones: finalObservaciones,
+        observaciones: infoEstructurada,
         id_usuario: 1
       },
       detalles: selectedServices.map(s => ({
@@ -114,6 +125,8 @@ const Reception = () => {
         setObservaciones('');
         setClasificacion('Blanca');
         setCiclo('Normal');
+        setTotalPrendas(1);
+        setInsumos([]);
         setTicketUuid(null);
         setIsSubmitting(false);
       }, 4000);
@@ -160,7 +173,7 @@ const Reception = () => {
               </div>
               Especificaciones de Carga
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-3">Clasificación de Ropa</label>
                 <div className="flex flex-wrap gap-2">
@@ -168,7 +181,7 @@ const Reception = () => {
                     <button
                       key={tipo}
                       onClick={() => setClasificacion(tipo)}
-                      className={`px-4 py-2 rounded-xl text-sm font-bold transition-all border-2 ${
+                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
                         clasificacion === tipo
                           ? 'border-primary-500 bg-primary-50 text-primary-700 shadow-sm'
                           : 'border-slate-100 bg-slate-50 text-slate-500 hover:border-slate-200'
@@ -180,17 +193,76 @@ const Reception = () => {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-semibold text-slate-700 mb-3">Ciclo de Tratamiento</label>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Ciclo de Lavado</label>
                 <select
                   value={ciclo}
                   onChange={(e) => setCiclo(e.target.value)}
-                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white font-medium"
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white font-medium text-sm"
                 >
-                  <option value="Normal">Lavado Normal</option>
-                  <option value="Delicado">Lavado Delicado</option>
-                  <option value="Pesado">Lavado Pesado / Edredones</option>
+                  <option value="Normal">Normal</option>
+                  <option value="Delicado">Delicado</option>
+                  <option value="Pesado">Pesado / Edredones</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-semibold text-slate-700 mb-3">Total de Prendas</label>
+                <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 w-full">
+                  <input
+                    type="number"
+                    min="1"
+                    value={totalPrendas}
+                    onChange={(e) => setTotalPrendas(parseInt(e.target.value) || 1)}
+                    className="bg-transparent outline-none font-bold text-slate-700 w-full text-center"
+                    placeholder="0 pcs"
+                  />
+                  <span className="text-slate-400 font-bold text-xs uppercase">pcs</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Preferencias de Insumos */}
+            <div className="mt-8 border-t border-slate-100 pt-6">
+              <label className="block text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                Preferencias de Insumos
+                <span className="text-[10px] bg-primary-100 text-primary-600 px-2 py-0.5 rounded-full uppercase tracking-wider">Opcional</span>
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {['Detergente Extra', 'Suavizante', 'Cloro', 'Quitamanchas'].map((insumo) => {
+                  const isCloro = insumo === 'Cloro';
+                  const isDisabled = isCloro && (clasificacion === 'Color/Oscura' || clasificacion === 'Mixta');
+                  const isActive = insumos.includes(insumo) && !isDisabled;
+                  
+                  return (
+                    <button
+                      key={insumo}
+                      type="button"
+                      disabled={isDisabled}
+                      onClick={() => {
+                        setInsumos(prev => 
+                          prev.includes(insumo) 
+                            ? prev.filter(i => i !== insumo) 
+                            : [...prev, insumo]
+                        );
+                      }}
+                      className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all border-2 flex items-center gap-2 ${
+                        isActive
+                          ? 'border-primary-500 bg-primary-600 text-white shadow-lg shadow-primary-600/20 scale-105'
+                          : isDisabled
+                            ? 'border-slate-50 bg-slate-50 text-slate-300 cursor-not-allowed opacity-50'
+                            : 'border-slate-100 bg-white text-slate-500 hover:border-primary-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      {isActive && <CheckCircle2 size={14} className="animate-in zoom-in" />}
+                      {insumo}
+                    </button>
+                  );
+                })}
+              </div>
+              {clasificacion !== 'Blanca' && (
+                <p className="text-[10px] text-amber-600 mt-3 font-medium flex items-center gap-1 italic">
+                  * El uso de cloro está restringido para prendas de color o mixtas.
+                </p>
+              )}
             </div>
           </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 mb-6 transition-all hover:shadow-md">
