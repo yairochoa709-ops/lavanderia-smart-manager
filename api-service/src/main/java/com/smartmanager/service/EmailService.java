@@ -32,7 +32,7 @@ public class EmailService {
                 "  <div style='max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;'>" +
                 "    <div style='background-color: #2563eb; padding: 24px; text-align: center; color: white;'>" +
                 "      <h1 style='margin: 0; font-size: 24px;'>SmartManager</h1>" +
-                "      <p style='margin: 8px 0 0; opacity: 0.9;'>Tu colada en buenas manos</p>" +
+                "      <p style='margin: 8px 0 0; opacity: 0.9;'>Gestión inteligente para tus prendas.</p>" +
                 "    </div>" +
                 "    <div style='padding: 32px;'>" +
                 "      <h2 style='color: #1e293b; margin-top: 0;'>¡Hola, " + nombreCliente + "!</h2>" +
@@ -45,7 +45,7 @@ public class EmailService {
                 "      <p style='font-size: 14px;'>" + detalleServicios + "</p>" +
                 "      <p style='font-size: 14px; font-style: italic; color: #64748b;'><strong>Observaciones:</strong> " + observaciones + "</p>" +
                 "      <div style='text-align: center; margin-top: 40px;'>" +
-                "        <a href='http://localhost:5173/seguimiento' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Rastrear mi Pedido</a>" +
+                "        <a href='http://localhost:5173/tracking?id=" + uuidTicket + "' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Ir al Portal de Seguimiento</a>" +
                 "      </div>" +
                 "    </div>" +
                 "    <div style='background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;'>" +
