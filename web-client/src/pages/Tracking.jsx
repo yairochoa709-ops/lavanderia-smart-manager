@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar, Loader2 } from 'lucide-react';
 
 // Cada step.id corresponde al id_estado de la tabla estado_proceso
@@ -45,6 +45,32 @@ const Tracking = ({ onBack }) => {
       setIsLoading(false);
     }
   };
+
+  // Efecto para buscar automáticamente si viene un ID en la URL
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    if (id) {
+      setSearchTerm(id);
+      // Disparamos la búsqueda directamente
+      const autoSearch = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+          const backendUrl = `http://${window.location.hostname}:8080/api/public/seguimiento/${encodeURIComponent(id)}`;
+          const response = await fetch(backendUrl);
+          if (!response.ok) throw new Error('No se encontró el pedido.');
+          const data = await response.json();
+          setOrderData(data);
+        } catch (err) {
+          setError(err.message);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+      autoSearch();
+    }
+  }, []);
 
   const calculatePenalty = (estimatedDateString, status, idEstado) => {
     if (status === 'ENTREGADO' || idEstado === 4) return { daysLate: 0, penaltyAmount: 0 };

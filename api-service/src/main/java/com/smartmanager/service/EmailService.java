@@ -45,7 +45,7 @@ public class EmailService {
                 "      <p style='font-size: 14px;'>" + detalleServicios + "</p>" +
                 "      <p style='font-size: 14px; font-style: italic; color: #64748b;'><strong>Observaciones:</strong> " + observaciones + "</p>" +
                 "      <div style='text-align: center; margin-top: 40px;'>" +
-                "        <a href='http://localhost:5173/tracking?id=" + uuidTicket + "' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Ir al Portal de Seguimiento</a>" +
+                "        <a href='http://localhost:5173/seguimiento?id=" + uuidTicket + "' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Ir al Portal de Seguimiento</a>" +
                 "      </div>" +
                 "    </div>" +
                 "    <div style='background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;'>" +
