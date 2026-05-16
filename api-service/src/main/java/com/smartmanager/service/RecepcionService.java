@@ -26,6 +26,7 @@ public class RecepcionService {
     private final PedidoRepository pedidoRepository;
     private final ServicioLavadoRepository servicioLavadoRepository;
     private final DetallePedidoRepository detallePedidoRepository;
+    private final EmailService emailService;
 
     @Transactional
     public UUID registrarPedido(RecepcionPedidoDTO dto) {
@@ -55,7 +56,8 @@ public class RecepcionService {
         
         pedido = pedidoRepository.save(pedido);
 
-        // 3. Detalles del Pedido
+        // 3. Detalles del Pedido y Preparación de Resumen para Email
+        StringBuilder resumenServicios = new StringBuilder();
         for (DetalleServicioDTO detalleDTO : dto.getDetalles()) {
             ServicioLavado servicio = servicioLavadoRepository.findById(detalleDTO.getIdServicio())
                     .orElseThrow(() -> new IllegalArgumentException("El servicio con ID " + detalleDTO.getIdServicio() + " no existe en la base de datos."));
@@ -70,7 +72,20 @@ public class RecepcionService {
             detalle.setSubtotalServicio(subtotal);
             
             detallePedidoRepository.save(detalle);
+            
+            // Añadimos al resumen para el correo
+            resumenServicios.append(servicio.getNombre())
+                            .append(" (").append(detalleDTO.getCantidad()).append("), ");
         }
+
+        // 4. Envío Asíncrono de Email (No bloqueante)
+        emailService.enviarTicketHtml(
+            cliente.getEmail(), 
+            cliente.getNombre(), 
+            pedido.getUuidTicket().toString(), 
+            resumenServicios.toString(), 
+            pedido.getObservaciones()
+        );
 
         return pedido.getUuidTicket();
     }
