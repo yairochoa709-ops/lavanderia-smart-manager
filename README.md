@@ -206,6 +206,12 @@ CREATE TABLE facturas (
     subtotal_sin_impuestos NUMERIC(10,2),
     total_iva NUMERIC(10,2)
 );
+
+-- 4. DATOS SEMILLA (OBLIGATORIOS para el funcionamiento del módulo de Recepción)
+INSERT INTO servicios_lavado (id_servicio, nombre_servicio, precio_unidad) VALUES
+    (1, 'Lavado en Seco', 5.50),
+    (2, 'Por Peso', 1.50),
+    (3, 'Planchado', 2.00);
 ```
 
 ### Paso 3: Configurar las credenciales en el Backend
@@ -219,6 +225,24 @@ spring.datasource.password=TU_CONTRASEÑA_POSTGRES
 ```
 
 > ⚠️ **IMPORTANTE:** No subas tus credenciales al repositorio. El archivo `application.properties` está en `.gitignore` por seguridad.
+
+### Paso 4: Configuración de Notificaciones (Email)
+
+El sistema utiliza **Spring Mail** para enviar los tickets automáticamente. Debes configurar tu proveedor SMTP:
+
+```properties
+# Ejemplo para GMAIL (Recomendado para pruebas reales)
+spring.mail.host=smtp.gmail.com
+spring.mail.port=587
+spring.mail.username=tu_correo@gmail.com
+spring.mail.password=tu_contraseña_de_aplicacion_google
+
+# Ejemplo para MAILTRAP (Recomendado para desarrollo local)
+# spring.mail.host=sandbox.smtp.mailtrap.io
+# spring.mail.port=2525
+# spring.mail.username=tu_usuario
+# spring.mail.password=tu_password
+```
 
 ---
 
@@ -264,6 +288,24 @@ El servidor quedará disponible en:
 - **En red (para móviles/compañeros):** http://TU_IP_LOCAL:5173/
 
 > 💡 Vite con `--host` expone el servidor en tu red local. Puedes encontrar tu IP con `ipconfig` (Windows) o `ifconfig` (Linux/Mac).
+
+---
+
+## 🛠️ Lógica de Negocio y Persistencia "Pro"
+
+Para evitar cambios constantes en el esquema de la base de datos durante el desarrollo del parcial, se ha implementado una estrategia de **Handoff de Datos Estructurados**:
+
+### 1. Especificaciones de Carga
+Los datos adicionales capturados en la recepción (**Kilogramos**, **Total de Prendas**, **Clasificación**, **Ciclo** e **Insumos**) no tienen columnas propias en la tabla `pedidos`. En su lugar, el Frontend los empaqueta en un formato legible dentro del campo `observaciones`:
+
+**Ejemplo de almacenamiento:**
+`[DETALLE: 5.5 Kg | 12 pcs | Blanca] [CICLO: Normal] [INSUMOS: Detergente Extra, Suavizante] | Obs: Entregar por la tarde.`
+
+### 2. Portal de Seguimiento Inteligente
+El enlace de seguimiento enviado por correo incluye un parámetro `id`:
+`http://localhost:5173/seguimiento?id=UUID_DEL_TICKET`
+
+El Frontend detecta este parámetro automáticamente y realiza la búsqueda sin que el usuario tenga que escribir nada.
 
 ---
 
