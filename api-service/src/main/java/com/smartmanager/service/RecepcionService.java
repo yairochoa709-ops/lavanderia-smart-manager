@@ -74,7 +74,7 @@ public class RecepcionService {
             detallePedidoRepository.save(detalle);
             
             // Añadimos al resumen para el correo
-            resumenServicios.append(servicio.getNombre())
+            resumenServicios.append(servicio.getNombreServicio())
                             .append(" (").append(detalleDTO.getCantidad()).append("), ");
         }
 
