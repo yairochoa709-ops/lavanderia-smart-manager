@@ -35,6 +35,7 @@ public class FacturacionService {
     private final DetallePedidoRepository detallePedidoRepository;
     private final FacturaRepository facturaRepository;
     private final EstadoProcesoRepository estadoProcesoRepository;
+    private final EmailService emailService;
 
     /**
      * Retorna todos los pedidos en estado "Listo para Retiro" (id_estado = 3)
@@ -141,6 +142,40 @@ public class FacturacionService {
                 .orElseThrow(() -> new IllegalStateException("Estado 'Entregado' no encontrado en la BD"));
         pedido.setEstado(estadoEntregado);
         pedidoRepository.save(pedido);
+
+        // 6.1 Enviar Factura por Correo Electrónico de forma asíncrona (no bloqueante)
+        try {
+            StringBuilder detalleBuilder = new StringBuilder("<table style='width:100%; border-collapse:collapse;'>");
+            for (DetallePedido d : detalles) {
+                detalleBuilder.append("<tr style='border-bottom: 1px solid #f1f5f9;'>")
+                    .append("<td style='padding: 8px 0; color: #0f172a; font-weight: 500;'>")
+                    .append(d.getServicioLavado().getNombreServicio())
+                    .append(" (x").append(d.getCantidad()).append(")")
+                    .append("</td>")
+                    .append("<td style='padding: 8px 0; text-align: right; color: #475569;'>")
+                    .append("$").append(d.getSubtotalServicio().setScale(2, RoundingMode.HALF_UP))
+                    .append("</td>")
+                    .append("</tr>");
+            }
+            detalleBuilder.append("</table>");
+
+            String uuidTicketStr = pedido.getUuidTicket() != null ? pedido.getUuidTicket().toString() : "N/A";
+            String fechaEmisionStr = facturaGuardada.getFechaEmision().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+
+            emailService.enviarFacturaHtml(
+                pedido.getCliente().getEmail(),
+                pedido.getCliente().getNombre(),
+                uuidTicketStr,
+                fechaEmisionStr,
+                subtotal.setScale(2, RoundingMode.HALF_UP).toString(),
+                recargo.setScale(2, RoundingMode.HALF_UP).toString(),
+                iva.setScale(2, RoundingMode.HALF_UP).toString(),
+                totalPagado.setScale(2, RoundingMode.HALF_UP).toString(),
+                detalleBuilder.toString()
+            );
+        } catch (Exception e) {
+            System.err.println("Error al intentar disparar el correo de la factura: " + e.getMessage());
+        }
 
         // 7. Devolver respuesta
         return FacturaResponseDTO.builder()
