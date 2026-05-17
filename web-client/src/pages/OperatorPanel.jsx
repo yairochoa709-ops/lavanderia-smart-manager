@@ -19,7 +19,7 @@ const OperatorPanel = () => {
   const fetchTablero = async () => {
     try {
       setLoading(true);
-      const res = await fetch('http://localhost:8080/api/pedidos/tablero');
+      const res = await fetch(`http://${window.location.hostname}:8080/api/pedidos/tablero`);
       if (!res.ok) throw new Error('Error de red al cargar el tablero');
       const data = await res.json();
       setPedidos(data);
@@ -41,7 +41,7 @@ const OperatorPanel = () => {
     setPedidos(pedidos.map(p => p.idPedido === pedido.idPedido ? { ...p, idEstado: nuevoEstado } : p));
     
     try {
-      const res = await fetch(`http://localhost:8080/api/pedidos/${pedido.idPedido}/estado`, {
+      const res = await fetch(`http://${window.location.hostname}:8080/api/pedidos/${pedido.idPedido}/estado`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idEstado: nuevoEstado })

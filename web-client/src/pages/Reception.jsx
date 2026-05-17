@@ -29,6 +29,25 @@ const Reception = () => {
   
   // Estado para el modal del QR genérico
   const [showQrModal, setShowQrModal] = useState(false);
+  const [serverIp, setServerIp] = useState('');
+
+  // Cargar automáticamente la IP de red local desde el backend
+  useEffect(() => {
+    const fetchServerIp = async () => {
+      try {
+        const res = await fetch(`http://${window.location.hostname}:8080/api/public/server-ip`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.ip && data.ip !== 'localhost' && data.ip !== '127.0.0.1') {
+            setServerIp(data.ip);
+          }
+        }
+      } catch (err) {
+        console.error('Error al obtener la IP local del servidor:', err);
+      }
+    };
+    fetchServerIp();
+  }, []);
 
   const getMinDateTime = () => {
     const now = new Date();
@@ -99,7 +118,7 @@ const Reception = () => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('http://localhost:8080/api/pedidos', {
+      const response = await fetch(`http://${window.location.hostname}:8080/api/pedidos`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -141,7 +160,15 @@ const Reception = () => {
   const taxes = subtotal * 0.15;
   const total = subtotal + taxes;
 
-  const staticTrackingUrl = `${import.meta.env.VITE_PUBLIC_URL || 'http://localhost:5173'}/seguimiento`;
+  const getTrackingUrl = () => {
+    const hostname = window.location.hostname;
+    // Si estamos en localhost pero el backend nos dio una IP de red real, usamos la IP de red
+    const activeHost = (hostname === 'localhost' || hostname === '127.0.0.1') && serverIp ? serverIp : hostname;
+    const activePort = window.location.port ? `:${window.location.port}` : '';
+    return `http://${activeHost}${activePort}/seguimiento`;
+  };
+
+  const staticTrackingUrl = getTrackingUrl();
 
   return (
     <div className="max-w-5xl mx-auto animate-in fade-in duration-500 relative">
@@ -374,9 +401,19 @@ const Reception = () => {
             </button>
             
             {ticketGenerated && (
-              <div className="mt-4 p-3 bg-emerald-50 text-emerald-700 rounded-lg text-center text-xs border border-emerald-100 animate-in slide-in-from-bottom-2 fade-in">
-                <p className="font-bold mb-1">¡Ticket Registrado en Base de Datos!</p>
-                <p className="font-mono text-emerald-600 text-[10px] break-all">{ticketUuid}</p>
+              <div className="mt-4 p-4 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100 animate-in slide-in-from-bottom-2 fade-in flex flex-col items-center gap-3">
+                <div className="bg-white p-2 rounded-xl shadow-sm border border-emerald-100">
+                  <QRCodeSVG 
+                    value={`${staticTrackingUrl}?id=${ticketUuid}`} 
+                    size={120} 
+                    level="M"
+                  />
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-xs mb-1">¡Ticket Registrado con éxito!</p>
+                  <p className="font-mono text-emerald-600 text-[10px] break-all">{ticketUuid}</p>
+                  <p className="text-[10px] text-emerald-500 mt-1 italic">Escanea para seguir el pedido</p>
+                </div>
               </div>
             )}
           </div>

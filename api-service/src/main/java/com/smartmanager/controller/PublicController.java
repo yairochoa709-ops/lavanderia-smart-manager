@@ -32,4 +32,17 @@ public class PublicController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
     }
+
+    @GetMapping("/server-ip")
+    public ResponseEntity<?> obtenerIpServidor() {
+        Map<String, String> response = new HashMap<>();
+        try {
+            String ip = java.net.InetAddress.getLocalHost().getHostAddress();
+            response.put("ip", ip);
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("ip", "localhost");
+            return ResponseEntity.ok(response);
+        }
+    }
 }
