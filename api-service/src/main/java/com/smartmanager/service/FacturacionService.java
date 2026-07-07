@@ -107,7 +107,7 @@ public class FacturacionService {
      * 4. Cambia el estado del pedido a "Entregado" (id_estado = 4).
      */
     @Transactional
-    public FacturaResponseDTO procesarPago(Long idPedido) {
+    public FacturaResponseDTO procesarPago(Long idPedido, String metodoPago) {
         // 1. Cargar pedido
         Pedido pedido = pedidoRepository.findById(idPedido)
                 .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado: " + idPedido));
@@ -135,6 +135,7 @@ public class FacturacionService {
         factura.setValorPermanenciaExtra(recargo.setScale(2, RoundingMode.HALF_UP)); // mismo valor, campo redundante del esquema
         factura.setTotalIva(iva);
         factura.setTotalPagado(totalPagado);
+        factura.setMetodoPago(metodoPago);
         Factura facturaGuardada = facturaRepository.save(factura);
 
         // 6. Cambiar estado del pedido a Entregado (ID = 4)
@@ -177,6 +178,10 @@ public class FacturacionService {
             System.err.println("Error al intentar disparar el correo de la factura: " + e.getMessage());
         }
 
+        List<String> nombresServicios = detalles.stream()
+                .map(d -> d.getServicioLavado().getNombreServicio())
+                .collect(Collectors.toList());
+
         // 7. Devolver respuesta
         return FacturaResponseDTO.builder()
                 .idFactura(facturaGuardada.getIdFactura())
@@ -187,7 +192,47 @@ public class FacturacionService {
                 .valorRecargoPermanencia(recargo)
                 .totalIva(iva)
                 .totalPagado(totalPagado)
+                .metodoPago(metodoPago)
+                .servicios(nombresServicios)
                 .mensaje("Pedido entregado y factura generada correctamente.")
                 .build();
+    }
+
+    /**
+     * Retorna el historial de todas las facturas procesadas.
+     */
+    @Transactional(readOnly = true)
+    public List<FacturaResponseDTO> obtenerTodasLasFacturas() {
+        List<Factura> facturas = facturaRepository.findAll();
+        
+        // Ordenar por fecha descendente
+        facturas.sort((f1, f2) -> f2.getFechaEmision().compareTo(f1.getFechaEmision()));
+        
+        return facturas.stream().map(factura -> {
+            Pedido pedido = pedidoRepository.findById(factura.getIdPedido()).orElse(null);
+            String clienteNombre = pedido != null ? pedido.getCliente().getNombre() : "Desconocido";
+            
+            List<String> nombresServicios = new java.util.ArrayList<>();
+            if (pedido != null) {
+                List<DetallePedido> detalles = detallePedidoRepository.findByPedido(pedido);
+                nombresServicios = detalles.stream()
+                        .map(d -> d.getServicioLavado().getNombreServicio())
+                        .collect(Collectors.toList());
+            }
+            
+            return FacturaResponseDTO.builder()
+                    .idFactura(factura.getIdFactura())
+                    .idPedido(factura.getIdPedido())
+                    .nombreCliente(clienteNombre)
+                    .fechaEmision(factura.getFechaEmision())
+                    .subtotalSinImpuestos(factura.getSubtotalSinImpuestos())
+                    .valorRecargoPermanencia(factura.getValorRecargoPermanencia())
+                    .totalIva(factura.getTotalIva())
+                    .totalPagado(factura.getTotalPagado())
+                    .metodoPago(factura.getMetodoPago())
+                    .servicios(nombresServicios)
+                    .mensaje("OK")
+                    .build();
+        }).collect(Collectors.toList());
     }
 }

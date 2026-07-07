@@ -1,7 +1,9 @@
 import React from 'react';
-import { ClipboardList, Package, Receipt, FileText, Users, Droplets, LayoutDashboard } from 'lucide-react';
+import { ClipboardList, Package, Receipt, FileText, Users, Droplets, LayoutDashboard, LogOut } from 'lucide-react';
 
-const Sidebar = ({ currentPage, setCurrentPage, currentUserRole, setCurrentUserRole }) => {
+const Sidebar = ({ currentPage, setCurrentPage, currentUser, onLogout }) => {
+  const currentUserRole = currentUser?.role === 'Administrador' ? 'ADMIN' : 'OPERATOR';
+
   const menuItems = [
     { name: 'Recepción', icon: <ClipboardList size={20} />, requiresAdmin: false },
     { name: 'Panel Operativo', icon: <LayoutDashboard size={20} />, requiresAdmin: false },
@@ -61,25 +63,21 @@ const Sidebar = ({ currentPage, setCurrentPage, currentUserRole, setCurrentUserR
 
       <div className="p-6 border-t border-primary-800">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg ${currentUserRole === 'ADMIN' ? 'bg-primary-700' : 'bg-slate-700'}`}>
-              {currentUserRole === 'ADMIN' ? 'A' : 'O'}
+          <div className="flex items-center gap-3 overflow-hidden">
+            <div className={`w-10 h-10 shrink-0 rounded-full flex items-center justify-center font-bold text-lg ${currentUserRole === 'ADMIN' ? 'bg-primary-700' : 'bg-slate-700'}`}>
+              {currentUser?.name?.charAt(0) || 'U'}
             </div>
-            <div>
-              <p className="text-sm font-medium">Yair Ochoa</p>
-              <p className="text-xs text-primary-300">{currentUserRole === 'ADMIN' ? 'Administrator' : 'Operador'}</p>
+            <div className="truncate">
+              <p className="text-sm font-medium truncate">{currentUser?.name || 'Usuario'}</p>
+              <p className="text-xs text-primary-300 truncate">{currentUser?.role || 'Operador'}</p>
             </div>
           </div>
           <button 
-            onClick={() => {
-              const newRole = currentUserRole === 'ADMIN' ? 'OPERATOR' : 'ADMIN';
-              setCurrentUserRole(newRole);
-              if (newRole !== 'ADMIN' && currentPage === 'Usuarios') setCurrentPage('Recepción');
-            }}
-            className="text-xs bg-primary-800 hover:bg-primary-700 px-2 py-1 rounded"
-            title="Cambiar Rol (Demo)"
+            onClick={onLogout}
+            className="text-primary-300 hover:text-white hover:bg-primary-800 p-2 rounded-lg transition-colors ml-2 shrink-0"
+            title="Cerrar Sesión"
           >
-            ↔
+            <LogOut size={18} />
           </button>
         </div>
       </div>

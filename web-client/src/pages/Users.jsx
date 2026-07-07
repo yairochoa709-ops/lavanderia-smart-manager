@@ -1,14 +1,7 @@
 import React, { useState } from 'react';
 import { Users as UsersIcon, UserPlus, Shield, Mail, Key, CheckCircle2, XCircle, AlertCircle, Trash2 } from 'lucide-react';
 
-const initialUsers = [
-  { id: 1, name: 'Yair Ochoa', email: 'admin@smartmanager.com', role: 'Administrador', status: 'Activo' },
-  { id: 2, name: 'María Gómez', email: 'mgomez@smartmanager.com', role: 'Operador', status: 'Activo' },
-  { id: 3, name: 'Luis Pérez', email: 'lperez@smartmanager.com', role: 'Operador', status: 'Inactivo' },
-];
-
-const Users = () => {
-  const [users, setUsers] = useState(initialUsers);
+const Users = ({ users, setUsers }) => {
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ name: '', email: '', role: 'Operador', password: '' });
   const [error, setError] = useState('');
@@ -50,7 +43,7 @@ const Users = () => {
       return;
     }
 
-    // Crear nuevo usuario (Mock para enviar al Backend Java)
+    // Crear nuevo usuario
     const newUser = {
       id: Date.now(), // Simula ID auto-generado
       name: formData.name,
@@ -59,17 +52,17 @@ const Users = () => {
       status: 'Activo'
     };
 
-    console.log("=== NUEVO USUARIO PARA BACKEND (JSON) ===");
-    console.log(JSON.stringify({ ...newUser, passwordHash: "encrypted_string_here" }, null, 2));
+    console.log("=== NUEVO USUARIO CREADO EN FRONTEND ===");
+    console.log(newUser);
 
     setUsers([...users, newUser]);
-    setSuccess("Usuario creado y registrado exitosamente.");
+    setSuccess("Usuario creado y registrado exitosamente. Ya puede iniciar sesión.");
     setFormData({ name: '', email: '', role: 'Operador', password: '' });
     
     setTimeout(() => {
       setSuccess('');
       setShowForm(false);
-    }, 2000);
+    }, 3000);
   };
 
   return (

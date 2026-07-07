@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Package, AlertTriangle, CheckCircle, TrendingUp, Plus, Minus, X, CheckCircle2 } from 'lucide-react';
 
-const initialInventory = [
+const defaultInventory = [
   { id: 1, name: 'Detergente Líquido Industrial', currentQty: 15, unit: 'Litros', minStock: 20 },
   { id: 2, name: 'Suavizante Floral', currentQty: 45, unit: 'Litros', minStock: 15 },
   { id: 3, name: 'Desmanchador Clorado', currentQty: 5, unit: 'Litros', minStock: 10 },
@@ -11,8 +11,27 @@ const initialInventory = [
 ];
 
 const Inventory = () => {
-  const [inventory, setInventory] = useState(initialInventory);
+  // Inicializar estado desde localStorage si existe
+  const [inventory, setInventory] = useState(() => {
+    const saved = localStorage.getItem('smartmanager_inventory');
+    if (saved) return JSON.parse(saved);
+    return defaultInventory;
+  });
   
+  const [lastRestockDate, setLastRestockDate] = useState(() => {
+    const saved = localStorage.getItem('smartmanager_last_restock');
+    return saved || 'Nunca';
+  });
+  
+  // Guardar en localStorage cuando cambie el inventario
+  useEffect(() => {
+    localStorage.setItem('smartmanager_inventory', JSON.stringify(inventory));
+  }, [inventory]);
+
+  useEffect(() => {
+    localStorage.setItem('smartmanager_last_restock', lastRestockDate);
+  }, [lastRestockDate]);
+
   // Modal & Toast States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
@@ -32,10 +51,16 @@ const Inventory = () => {
     return () => window.removeEventListener('keydown', handleEsc);
   }, []);
 
+  const updateRestockDate = () => {
+    const now = new Date();
+    setLastRestockDate(now.toLocaleString('es-ES', { dateStyle: 'medium', timeStyle: 'short' }));
+  };
+
   const handleStockChange = (id, change) => {
     setInventory(prev => prev.map(item => {
       if (item.id === id) {
         const newQty = Math.max(0, item.currentQty + change);
+        if (change > 0) updateRestockDate();
         return { ...item, currentQty: newQty };
       }
       return item;
@@ -69,6 +94,7 @@ const Inventory = () => {
       minStock: parseInt(formData.minStock)
     }]);
 
+    updateRestockDate();
     setIsModalOpen(false);
     setFormData({ name: '', unit: 'Unidades', currentQty: '', minStock: '' });
     
@@ -231,7 +257,7 @@ const Inventory = () => {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Último Abasto</p>
-            <p className="text-xl font-bold text-slate-800 mt-1">Hoy, 09:30 AM</p>
+            <p className="text-xl font-bold text-slate-800 mt-1">{lastRestockDate}</p>
           </div>
         </div>
       </div>

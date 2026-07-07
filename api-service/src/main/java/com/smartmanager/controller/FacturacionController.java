@@ -32,9 +32,11 @@ public class FacturacionController {
      * Procesa el cobro: guarda la factura y marca el pedido como Entregado.
      */
     @PostMapping("/api/facturas/procesar/{idPedido}")
-    public ResponseEntity<?> procesarPago(@PathVariable Long idPedido) {
+    public ResponseEntity<?> procesarPago(
+            @PathVariable Long idPedido,
+            @RequestParam(required = false, defaultValue = "Efectivo") String metodoPago) {
         try {
-            FacturaResponseDTO response = facturacionService.procesarPago(idPedido);
+            FacturaResponseDTO response = facturacionService.procesarPago(idPedido, metodoPago);
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new HashMap<>();
@@ -45,5 +47,14 @@ public class FacturacionController {
             error.put("error", "Error interno al procesar el pago: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
         }
+    }
+
+    /**
+     * GET /api/facturas
+     * Devuelve el historial de todas las transacciones (facturas) procesadas.
+     */
+    @GetMapping("/api/facturas")
+    public ResponseEntity<List<FacturaResponseDTO>> getTodasLasFacturas() {
+        return ResponseEntity.ok(facturacionService.obtenerTodasLasFacturas());
     }
 }

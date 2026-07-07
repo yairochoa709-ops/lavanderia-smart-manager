@@ -105,7 +105,7 @@ const Billing = () => {
     const handleProcessPayment = async () => {
       setIsProcessing(true);
       try {
-        const res = await fetch(`${backendBase}/api/facturas/procesar/${selectedOrder.idPedido}`, {
+        const res = await fetch(`${backendBase}/api/facturas/procesar/${selectedOrder.idPedido}?metodoPago=${paymentMethod}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
         });

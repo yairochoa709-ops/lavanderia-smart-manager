@@ -35,4 +35,7 @@ public class Factura {
 
     @Column(name = "total_pagado", precision = 10, scale = 2)
     private BigDecimal totalPagado;
+
+    @Column(name = "metodo_pago", length = 50)
+    private String metodoPago;
 }
