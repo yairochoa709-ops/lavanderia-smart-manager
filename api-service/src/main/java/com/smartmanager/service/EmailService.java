@@ -27,6 +27,15 @@ public class EmailService {
             helper.setTo(emailCliente);
             helper.setSubject("Tu Ticket de Lavandería - SmartManager [" + uuidTicket.substring(0, 8) + "]");
 
+            String localIp = "localhost";
+            try {
+                localIp = java.net.InetAddress.getLocalHost().getHostAddress();
+            } catch (Exception e) {
+                logger.warn("No se pudo obtener la IP local, usando localhost", e);
+            }
+            
+            String trackingUrl = "http://" + localIp + ":5173/seguimiento?id=" + uuidTicket;
+
             String htmlContent = "<html>" +
                 "<body style='font-family: Arial, sans-serif; color: #334155; line-height: 1.6;'>" +
                 "  <div style='max-width: 600px; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;'>" +
@@ -45,7 +54,7 @@ public class EmailService {
                 "      <p style='font-size: 14px;'>" + detalleServicios + "</p>" +
                 "      <p style='font-size: 14px; font-style: italic; color: #64748b;'><strong>Observaciones:</strong> " + observaciones + "</p>" +
                 "      <div style='text-align: center; margin-top: 40px;'>" +
-                "        <a href='http://localhost:5173/seguimiento?id=" + uuidTicket + "' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Ir al Portal de Seguimiento</a>" +
+                "        <a href='" + trackingUrl + "' style='background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block;'>Ir al Portal de Seguimiento</a>" +
                 "      </div>" +
                 "    </div>" +
                 "    <div style='background-color: #f1f5f9; padding: 16px; text-align: center; font-size: 12px; color: #94a3b8;'>" +

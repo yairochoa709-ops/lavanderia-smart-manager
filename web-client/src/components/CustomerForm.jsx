@@ -1,5 +1,6 @@
 import React from 'react';
 import { User, CreditCard, Phone, Mail } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const CustomerForm = ({ customer, setCustomer }) => {
   const handleChange = (e) => {
@@ -26,6 +27,26 @@ const CustomerForm = ({ customer, setCustomer }) => {
     }
 
     setCustomer(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleBlurId = async () => {
+    if (customer.id && (customer.id.length === 10 || customer.id.length === 13)) {
+      try {
+        const res = await fetch(`http://${window.location.hostname}:8080/api/clientes/${customer.id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setCustomer(prev => ({
+            ...prev,
+            name: data.nombre || prev.name,
+            phone: data.telefono || prev.phone,
+            email: data.email || prev.email
+          }));
+          toast.success('¡Cliente frecuente encontrado!');
+        }
+      } catch (error) {
+        console.error("Error al buscar cliente:", error);
+      }
+    }
   };
 
   return (
@@ -91,6 +112,7 @@ const CustomerForm = ({ customer, setCustomer }) => {
               name="id"
               value={customer.id}
               onChange={handleChange}
+              onBlur={handleBlurId}
               className="w-full pl-10 pr-3 py-3 border border-slate-200 rounded-xl focus:ring-4 focus:ring-primary-500/10 focus:border-primary-500 outline-none transition-all text-slate-700 bg-slate-50 focus:bg-white"
               placeholder={customer.idType === 'RUC' ? "13 dígitos" : "10 dígitos"}
             />

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar, Loader2 } from 'lucide-react';
+import { Search, MapPin, CheckCircle2, Clock, Package, MessageCircle, AlertCircle, ArrowLeft, Droplets, Calendar, Loader2, XCircle } from 'lucide-react';
 
 // Cada step.id corresponde al id_estado de la tabla estado_proceso
 const steps = [
@@ -13,7 +13,11 @@ const PENALTY_PER_DAY = 0.50;
 
 const Tracking = ({ onBack }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [orderData, setOrderData] = useState(null);
+  const [ordersData, setOrdersData] = useState(null);
+  const [dismissedOrders, setDismissedOrders] = useState(() => {
+    const saved = localStorage.getItem('smartmanager_dismissed_orders');
+    return saved ? JSON.parse(saved) : [];
+  });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,7 +27,7 @@ const Tracking = ({ onBack }) => {
 
     setIsLoading(true);
     setError('');
-    setOrderData(null);
+    setOrdersData(null);
 
     try {
       const backendUrl = `http://${window.location.hostname}:8080/api/public/seguimiento/${encodeURIComponent(searchTerm)}`;
@@ -38,7 +42,7 @@ const Tracking = ({ onBack }) => {
       }
 
       const data = await response.json();
-      setOrderData(data);
+      setOrdersData(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -61,7 +65,7 @@ const Tracking = ({ onBack }) => {
           const response = await fetch(backendUrl);
           if (!response.ok) throw new Error('No se encontró el pedido.');
           const data = await response.json();
-          setOrderData(data);
+          setOrdersData(data);
         } catch (err) {
           setError(err.message);
         } finally {
@@ -99,17 +103,14 @@ const Tracking = ({ onBack }) => {
     return 'pending';
   };
 
+  const handleDismissOrder = (idTicket) => {
+    const updated = [...dismissedOrders, idTicket];
+    setDismissedOrders(updated);
+    localStorage.setItem('smartmanager_dismissed_orders', JSON.stringify(updated));
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans relative">
-      {/* Botón oculto para regresar al Admin (Solo Demo) */}
-      <button 
-        onClick={onBack}
-        className="absolute top-4 left-4 text-slate-400 hover:text-slate-600 flex items-center gap-2 text-sm z-50 transition-colors"
-        title="Volver a la vista de Administrador"
-      >
-        <ArrowLeft size={16} /> Volver al Admin
-      </button>
-
       {/* Header Público */}
       <header className="bg-primary-900 text-white py-6 shadow-md relative z-10">
         <div className="max-w-4xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -131,7 +132,7 @@ const Tracking = ({ onBack }) => {
 
       {/* Contenido Principal */}
       <main className="flex-1 max-w-4xl mx-auto w-full px-6 py-12 flex flex-col">
-        {!orderData && (
+        {!ordersData && (
           <div className="text-center max-w-xl mx-auto mt-12 animate-in fade-in slide-in-from-bottom-8 duration-700">
             <h2 className="text-4xl font-extrabold text-slate-900 mb-4 tracking-tight">Sigue tu pedido en tiempo real</h2>
             <p className="text-slate-500 text-lg mb-8">Ingresa tu número de ticket de seguimiento o cédula para conocer el estado exacto de tus prendas.</p>
@@ -168,31 +169,72 @@ const Tracking = ({ onBack }) => {
           </div>
         )}
 
-        {orderData && (
-          <div className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 gap-4">
+        {ordersData && (
+          <div className="animate-in fade-in slide-in-from-bottom-8 duration-500 space-y-12">
+            
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
               <div>
-                <button onClick={() => { setOrderData(null); setSearchTerm(''); }} className="text-primary-600 hover:text-primary-800 text-sm font-bold flex items-center gap-1 mb-4 transition-colors">
+                <button onClick={() => { setOrdersData(null); setSearchTerm(''); }} className="text-primary-600 hover:text-primary-800 text-sm font-bold flex items-center gap-1 transition-colors">
                   <ArrowLeft size={16} /> Nueva Búsqueda
                 </button>
-                <h2 className="text-3xl font-extrabold text-slate-900">Ticket Público</h2>
-                <p className="text-slate-500 text-xs font-mono break-all mt-1">{orderData.idTicket}</p>
-                <p className="text-slate-500 text-lg mt-2">Hola, <span className="font-semibold text-slate-700">{orderData.nombreCliente}</span></p>
-              </div>
-              <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-200">
-                <p className="text-sm font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Entrega Pactada</p>
-                <div className="flex items-center gap-2 text-slate-900 font-extrabold text-lg">
-                  <Calendar size={20} className="text-primary-600" />
-                  {new Date(orderData.fechaEntregaPactada).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </div>
+                <h2 className="text-3xl font-extrabold text-slate-900 mt-4">Mis Pedidos</h2>
               </div>
             </div>
 
-            {/* Stepper */}
+            {(() => {
+              const visibleOrders = ordersData.filter(o => !dismissedOrders.includes(o.idTicket));
+              
+              if (visibleOrders.length === 0 && ordersData.length > 0) {
+                return (
+                  <div className="text-center py-12 bg-white rounded-3xl border border-slate-100 shadow-sm">
+                    <CheckCircle2 size={48} className="mx-auto text-emerald-500 mb-4" />
+                    <h3 className="text-xl font-bold text-slate-800 mb-2">Todos tus pedidos están listos</h3>
+                    <p className="text-slate-500">No tienes pedidos activos pendientes de revisión.</p>
+                  </div>
+                );
+              }
+
+              return visibleOrders.map((orderData, index) => (
+                <div key={orderData.idTicket} className="bg-white/50 rounded-3xl p-6 sm:p-8 border-2 border-slate-100/80 shadow-lg relative">
+                  
+                  {/* Etiqueta de Orden */}
+                  <div className="absolute -top-4 left-8 bg-primary-600 text-white px-4 py-1 rounded-full text-sm font-bold shadow-md">
+                    Orden #{index + 1}
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end mb-8 mt-4 gap-4">
+                    <div>
+                      <p className="text-slate-500 text-xs font-mono break-all mb-2">{orderData.idTicket}</p>
+                      <p className="text-slate-700 text-lg font-medium mb-1">Hola, <span className="font-bold">{orderData.nombreCliente}</span></p>
+                      <div className="flex items-center gap-2 text-sm text-slate-500 mt-2 bg-slate-100 w-max px-3 py-1.5 rounded-lg">
+                        <Clock size={16} className="text-primary-500" />
+                        Registrado el: <span className="font-bold text-slate-700">{new Date(orderData.fechaRecepcion).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="bg-slate-50 px-5 py-3 rounded-2xl border border-slate-200 shadow-sm">
+                      <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">Fecha de Entrega Pactada</p>
+                      <div className="flex items-center gap-2 text-slate-900 font-extrabold text-base">
+                        <Calendar size={18} className="text-primary-600" />
+                        {new Date(orderData.fechaEntregaPactada).toLocaleDateString('es-ES', { weekday: 'short', day: 'numeric', month: 'short' })}
+                      </div>
+                    </div>
+                  </div>
+
+            {/* Stepper o Mensaje Cancelado */}
             <div className="bg-white p-8 sm:p-12 rounded-3xl shadow-xl shadow-slate-200/50 border border-slate-100 mb-8 relative overflow-hidden">
               <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-primary-400 to-primary-600"></div>
               
-              <div className="relative flex flex-col sm:flex-row justify-between mt-4">
+              {orderData.idEstado === 5 ? (
+                <div className="flex flex-col items-center justify-center text-center py-8">
+                  <div className="w-20 h-20 bg-red-100 text-red-500 rounded-full flex items-center justify-center mb-6">
+                    <XCircle size={40} />
+                  </div>
+                  <h3 className="text-2xl font-bold text-slate-800 mb-2">Pedido Cancelado</h3>
+                  <p className="text-slate-500 max-w-md">Este pedido fue cancelado y ya no se encuentra activo en nuestro sistema. Si crees que esto es un error, por favor contáctanos.</p>
+                </div>
+              ) : (
+                <div className="relative flex flex-col sm:flex-row justify-between mt-4">
                 {/* Connecting lines for desktop */}
                 <div className="hidden sm:block absolute top-6 left-12 right-12 h-1 bg-slate-100 -z-10 rounded-full"></div>
                 
@@ -204,13 +246,24 @@ const Tracking = ({ onBack }) => {
                   let iconRing = 'ring-8 ring-white';
                   let textClass = 'text-slate-400';
                   
+                  const { daysLate } = calculatePenalty(orderData.fechaEntregaPactada, orderData.estadoActual, orderData.idEstado);
+                  const isDelayed = (step.id === 3 && orderData.idEstado === 3 && daysLate > 0);
+                  let stepLabel = step.label;
+                  
                   if (status === 'completed') {
                     iconBg = 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/30';
                     textClass = 'text-emerald-700 font-bold';
                   } else if (status === 'current') {
-                    iconBg = 'bg-primary-600 text-white shadow-lg shadow-primary-600/40 animate-pulse';
-                    iconRing = 'ring-8 ring-primary-50';
-                    textClass = 'text-primary-700 font-extrabold';
+                    if (isDelayed) {
+                      iconBg = 'bg-red-500 text-white shadow-lg shadow-red-500/40 animate-pulse';
+                      iconRing = 'ring-8 ring-red-50';
+                      textClass = 'text-red-700 font-extrabold';
+                      stepLabel = 'Retrasado';
+                    } else {
+                      iconBg = 'bg-primary-600 text-white shadow-lg shadow-primary-600/40 animate-pulse';
+                      iconRing = 'ring-8 ring-primary-50';
+                      textClass = 'text-primary-700 font-extrabold';
+                    }
                   }
 
                   return (
@@ -223,13 +276,14 @@ const Tracking = ({ onBack }) => {
                       </div>
                       <div className="sm:text-center">
                         <p className={`text-sm sm:text-base transition-colors duration-500 ${textClass}`}>
-                          {step.label}
+                          {stepLabel}
                         </p>
                       </div>
                     </div>
                   );
                 })}
               </div>
+              )}
             </div>
 
             {/* Alerta de Recargo */}
@@ -257,24 +311,42 @@ const Tracking = ({ onBack }) => {
             })()}
 
             {/* Resumen de Servicios */}
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-bold text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
-                  <Package size={18} className="text-slate-400" />
-                  Prendas en este ticket
-                </h3>
-                <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-xs font-bold border border-primary-100">
-                  Total: ${orderData.totalFinal.toFixed(2)}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {orderData.servicios.map((service, idx) => (
-                  <span key={idx} className="bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 flex items-center gap-2">
-                    <span className="font-bold">{service.cantidad}x</span> {service.nombre}
-                  </span>
-                ))}
-              </div>
-            </div>
+                  <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="font-bold text-slate-800 uppercase tracking-wider text-sm flex items-center gap-2">
+                        <Package size={18} className="text-slate-400" />
+                        Prendas en este ticket
+                      </h3>
+                      <span className="bg-primary-50 text-primary-700 px-3 py-1 rounded-full text-xs font-bold border border-primary-100">
+                        Total: ${orderData.totalFinal.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {orderData.servicios.map((service, idx) => (
+                        <span key={idx} className="bg-slate-50 text-slate-700 px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 flex items-center gap-2">
+                          <span className="font-bold">{service.cantidad}x</span> {service.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Botón Dismiss para Entregados o Cancelados */}
+                  {(orderData.idEstado === 4 || orderData.idEstado === 5) && (
+                    <div className="mt-6 flex justify-end">
+                      <button 
+                        onClick={() => handleDismissOrder(orderData.idTicket)}
+                        className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md"
+                      >
+                        <CheckCircle2 size={18} />
+                        Marcar como Visto / Ocultar
+                      </button>
+                    </div>
+                  )}
+
+                </div>
+              ));
+            })()}
+
           </div>
         )}
       </main>

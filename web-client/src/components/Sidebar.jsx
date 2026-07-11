@@ -50,15 +50,14 @@ const Sidebar = ({ currentPage, setCurrentPage, currentUser, onLogout }) => {
       </nav>
       
       <div className="px-4 pb-4">
-        <button
-          onClick={(e) => {
-            e.preventDefault();
-            setCurrentPage('Tracking');
-          }}
+        <a
+          href="/seguimiento"
+          target="_blank"
+          rel="noopener noreferrer"
           className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-4 py-3 rounded-xl font-bold transition-all shadow-md"
         >
           Vista Cliente
-        </button>
+        </a>
       </div>
 
       <div className="p-6 border-t border-primary-800">

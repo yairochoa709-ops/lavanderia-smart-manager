@@ -30,4 +30,14 @@ public class OperacionController {
         operacionService.actualizarEstadoPedido(id, nuevoEstadoId);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping("/{id}/cancelar")
+    public ResponseEntity<Void> cancelarPedido(@PathVariable Long id) {
+        try {
+            operacionService.cancelarPedido(id);
+            return ResponseEntity.ok().build();
+        } catch (IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
 }

@@ -10,6 +10,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     Optional<Pedido> findByUuidSeguimiento(UUID uuidSeguimiento);
     Optional<Pedido> findByUuidTicket(UUID uuidTicket);
     Optional<Pedido> findFirstByCliente_CedulaRucOrderByFechaRecepcionDesc(String cedulaRuc);
+    List<Pedido> findByCliente_CedulaRucOrderByFechaRecepcionDesc(String cedulaRuc);
     List<Pedido> findByEstado_IdEstadoInOrderByFechaRecepcionAsc(List<Integer> estados);
     // Incluye pedidos sin estado asignado (migración desde esquema anterior)
     List<Pedido> findByEstadoIsNullOrderByFechaRecepcionAsc();

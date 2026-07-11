@@ -66,4 +66,26 @@ public class OperacionService {
         pedido.setEstado(estado);
         pedidoRepository.save(pedido);
     }
+
+    @Transactional
+    public void cancelarPedido(Long idPedido) {
+        Pedido pedido = pedidoRepository.findById(idPedido)
+                .orElseThrow(() -> new IllegalArgumentException("Pedido no encontrado"));
+                
+        if (pedido.getEstado() != null && pedido.getEstado().getIdEstado() != 1) {
+            throw new IllegalStateException("Solo se pueden cancelar pedidos en estado Pendiente");
+        }
+        
+        EstadoProceso estadoCancelado = estadoProcesoRepository.findById(5)
+                .orElseGet(() -> {
+                    EstadoProceso e = new EstadoProceso();
+                    // Fallback to save if not exists, though ID might auto-generate
+                    e.setNombreEstado("Cancelado");
+                    e.setDescripcion("Pedido cancelado");
+                    return estadoProcesoRepository.save(e);
+                });
+
+        pedido.setEstado(estadoCancelado);
+        pedidoRepository.save(pedido);
+    }
 }

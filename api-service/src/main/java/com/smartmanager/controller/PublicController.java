@@ -8,6 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -20,8 +21,8 @@ public class PublicController {
     @GetMapping("/seguimiento/{criterio}")
     public ResponseEntity<?> consultarSeguimiento(@PathVariable String criterio) {
         try {
-            SeguimientoDTO dto = seguimientoService.consultarSeguimiento(criterio);
-            return ResponseEntity.ok(dto);
+            List<SeguimientoDTO> dtos = seguimientoService.consultarSeguimiento(criterio);
+            return ResponseEntity.ok(dtos);
         } catch (IllegalArgumentException e) {
             Map<String, String> error = new HashMap<>();
             error.put("error", e.getMessage());

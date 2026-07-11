@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ArrowRight, CheckCircle, Package } from 'lucide-react';
+import { Clock, ArrowRight, CheckCircle, Package, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const COLUMNS = [
@@ -53,6 +53,28 @@ const OperatorPanel = () => {
       // Revert if error
       setPedidos(previousPedidos);
       toast.error('Fallo al actualizar el estado. Se revirtió el cambio.');
+    }
+  };
+
+  const handleCancelOrder = async (pedido) => {
+    if (!window.confirm(`¿Estás seguro de cancelar el pedido de ${pedido.nombreCliente}? Esta acción no se puede deshacer.`)) {
+      return;
+    }
+
+    const previousPedidos = [...pedidos];
+    // Optimistic UI Update: remove from pending
+    setPedidos(pedidos.filter(p => p.idPedido !== pedido.idPedido));
+    
+    try {
+      const res = await fetch(`http://${window.location.hostname}:8080/api/pedidos/${pedido.idPedido}/cancelar`, {
+        method: 'PATCH'
+      });
+      
+      if (!res.ok) throw new Error('Error al cancelar');
+      toast.success('Pedido cancelado correctamente');
+    } catch (err) {
+      setPedidos(previousPedidos);
+      toast.error('Fallo al cancelar el pedido.');
     }
   };
 
@@ -129,13 +151,25 @@ const OperatorPanel = () => {
                     </div>
                     
                     {col.id < 3 && (
-                      <button 
-                        onClick={() => handleNextState(pedido)}
-                        className="mt-4 w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-primary-50 text-primary-600 border border-slate-200 hover:border-primary-200 py-2 rounded-lg font-medium transition-colors text-sm group-hover:bg-primary-600 group-hover:text-white"
-                      >
-                        Siguiente Etapa
-                        <ArrowRight size={16} />
-                      </button>
+                      <div className="mt-4 flex flex-col gap-2">
+                        <button 
+                          onClick={() => handleNextState(pedido)}
+                          className="w-full flex items-center justify-center gap-2 bg-slate-50 hover:bg-primary-50 text-primary-600 border border-slate-200 hover:border-primary-200 py-2 rounded-lg font-medium transition-colors text-sm group-hover:bg-primary-600 group-hover:text-white"
+                        >
+                          Siguiente Etapa
+                          <ArrowRight size={16} />
+                        </button>
+                        
+                        {col.id === 1 && (
+                          <button 
+                            onClick={() => handleCancelOrder(pedido)}
+                            className="w-full flex items-center justify-center gap-2 bg-white hover:bg-red-50 text-red-500 hover:text-red-600 border border-transparent hover:border-red-200 py-2 rounded-lg font-medium transition-colors text-sm"
+                          >
+                            <XCircle size={16} />
+                            Cancelar Pedido
+                          </button>
+                        )}
+                      </div>
                     )}
                     {col.id === 3 && (
                       <div className="mt-4 w-full flex items-center justify-center gap-2 text-emerald-600 py-2 rounded-lg font-medium bg-emerald-50 text-sm">

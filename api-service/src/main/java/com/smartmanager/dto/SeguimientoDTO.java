@@ -13,6 +13,7 @@ public class SeguimientoDTO {
     private String nombreCliente;
     private String estadoActual;
     private Integer idEstado;
+    private LocalDateTime fechaRecepcion;
     private LocalDateTime fechaEntregaPactada;
     private BigDecimal totalFinal;
     private List<ServicioSimplificadoDTO> servicios;

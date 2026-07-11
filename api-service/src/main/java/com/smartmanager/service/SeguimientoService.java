@@ -23,61 +23,64 @@ public class SeguimientoService {
     private final DetallePedidoRepository detallePedidoRepository;
 
     @Transactional(readOnly = true)
-    public SeguimientoDTO consultarSeguimiento(String criterio) {
-        Optional<Pedido> pedidoOpt;
+    public List<SeguimientoDTO> consultarSeguimiento(String criterio) {
+        List<Pedido> pedidos;
 
-        // Intentar parsear como UUID (busca por uuid_seguimiento Y uuid_ticket)
         try {
             UUID uuid = UUID.fromString(criterio);
-            // Primero intenta por uuid_seguimiento (link del QR)
-            pedidoOpt = pedidoRepository.findByUuidSeguimiento(uuid);
-            // Si no encuentra, intenta por uuid_ticket
+            Optional<Pedido> pedidoOpt = pedidoRepository.findByUuidSeguimiento(uuid);
             if (pedidoOpt.isEmpty()) {
                 pedidoOpt = pedidoRepository.findByUuidTicket(uuid);
             }
+            if (pedidoOpt.isPresent()) {
+                pedidos = List.of(pedidoOpt.get());
+            } else {
+                throw new IllegalArgumentException("No pudimos encontrar un pedido con ese código único.");
+            }
         } catch (IllegalArgumentException e) {
-            // Si no es UUID, busca por cédula del cliente
-            pedidoOpt = pedidoRepository.findFirstByCliente_CedulaRucOrderByFechaRecepcionDesc(criterio);
+            if (e.getMessage() != null && e.getMessage().contains("código único")) {
+                throw e; 
+            }
+            pedidos = pedidoRepository.findByCliente_CedulaRucOrderByFechaRecepcionDesc(criterio);
+            if (pedidos.isEmpty()) {
+                throw new IllegalArgumentException("No pudimos encontrar pedidos para esta cédula.");
+            }
         }
 
-        Pedido pedido = pedidoOpt.orElseThrow(() -> 
-            new IllegalArgumentException("No pudimos encontrar un pedido con ese número de seguimiento o cédula.")
-        );
+        return pedidos.stream().map(pedido -> {
+            List<DetallePedido> detalles = detallePedidoRepository.findByPedido(pedido);
 
-        List<DetallePedido> detalles = detallePedidoRepository.findByPedido(pedido);
+            BigDecimal subtotal = detalles.stream()
+                    .map(DetallePedido::getSubtotalServicio)
+                    .reduce(BigDecimal.ZERO, BigDecimal::add);
+            BigDecimal iva = subtotal.multiply(new BigDecimal("0.15"));
+            BigDecimal totalFinal = subtotal.add(iva);
 
-        // Calcular total con IVA
-        BigDecimal subtotal = detalles.stream()
-                .map(DetallePedido::getSubtotalServicio)
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
-        BigDecimal iva = subtotal.multiply(new BigDecimal("0.15"));
-        BigDecimal totalFinal = subtotal.add(iva);
+            String nombreCompleto = pedido.getCliente().getNombre();
+            String primerNombre = nombreCompleto != null ? nombreCompleto.split(" ")[0] : "Cliente";
 
-        // Extraer primer nombre
-        String nombreCompleto = pedido.getCliente().getNombre();
-        String primerNombre = nombreCompleto != null ? nombreCompleto.split(" ")[0] : "Cliente";
+            List<SeguimientoDTO.ServicioSimplificadoDTO> serviciosDTO = detalles.stream()
+                    .map(d -> SeguimientoDTO.ServicioSimplificadoDTO.builder()
+                            .nombre(d.getServicioLavado().getNombreServicio())
+                            .cantidad(d.getCantidad())
+                            .subtotal(d.getSubtotalServicio())
+                            .build())
+                    .collect(Collectors.toList());
 
-        List<SeguimientoDTO.ServicioSimplificadoDTO> serviciosDTO = detalles.stream()
-                .map(d -> SeguimientoDTO.ServicioSimplificadoDTO.builder()
-                        .nombre(d.getServicioLavado().getNombreServicio())
-                        .cantidad(d.getCantidad())
-                        .subtotal(d.getSubtotalServicio())
-                        .build())
-                .collect(Collectors.toList());
+            String estadoActualFrontend = (pedido.getEstado() != null && pedido.getEstado().getNombreEstado() != null) 
+                    ? pedido.getEstado().getNombreEstado().toUpperCase() 
+                    : "RECIBIDO";
 
-        // Asegurar que el estado esté en MAYÚSCULAS para coincidir con la lógica del Frontend
-        String estadoActualFrontend = (pedido.getEstado() != null && pedido.getEstado().getNombreEstado() != null) 
-                ? pedido.getEstado().getNombreEstado().toUpperCase() 
-                : "RECIBIDO";
-
-        return SeguimientoDTO.builder()
-                .idTicket(pedido.getUuidTicket().toString()) // Frontend mostrará el ticket visualmente
-                .nombreCliente(primerNombre)
-                .estadoActual(estadoActualFrontend)
-                .idEstado(pedido.getEstado() != null ? pedido.getEstado().getIdEstado() : 1)
-                .fechaEntregaPactada(pedido.getFechaEntregaLimite())
-                .totalFinal(totalFinal)
-                .servicios(serviciosDTO)
-                .build();
+            return SeguimientoDTO.builder()
+                    .idTicket(pedido.getUuidTicket().toString())
+                    .nombreCliente(primerNombre)
+                    .estadoActual(estadoActualFrontend)
+                    .idEstado(pedido.getEstado() != null ? pedido.getEstado().getIdEstado() : 1)
+                    .fechaRecepcion(pedido.getFechaRecepcion())
+                    .fechaEntregaPactada(pedido.getFechaEntregaLimite())
+                    .totalFinal(totalFinal)
+                    .servicios(serviciosDTO)
+                    .build();
+        }).collect(Collectors.toList());
     }
 }
