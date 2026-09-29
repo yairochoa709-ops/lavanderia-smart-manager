@@ -3,6 +3,9 @@
 Sistema integral de gestión de procesos para una lavandería en Guayaquil. Incluye recepción digital de pedidos con tickets QR, portal de seguimiento para clientes, panel operativo Kanban y módulos de facturación, inventario y reportes.
 
 ---
+## Documentacion - Diagramas
+https://drive.google.com/file/d/1vXaPZz13iDqWCVHjChT4MMnJ1sYaRa6U/view?usp=sharing
+
 
 ## 📋 Tabla de Contenidos
 
